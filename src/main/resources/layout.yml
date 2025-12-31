@@ -1,0 +1,334 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                         LiteBansGui Layout                         ║
+# ║     Slot positions + icon materials for LiteBansGui menus           ║
+# ╚════════════════════════════════════════════════════════════════════╝
+#
+# ✅ This file controls WHERE things are placed (slots) and WHAT item they use (material).
+# 💬 All display text (titles, names, lore, errors) is in messages.yml.
+# 🧠 Flow rules (timeouts, session behavior, punish levels) are in config.yml.
+#
+# 🔧 In-game editor:
+# • /punisheditor opens the editor and lets you:
+#   - drag items to swap slots
+#   - click with an item on your cursor to "paint" a new material (no items consumed)
+# • /punisheditor save writes updated slots/materials to this file.
+#
+# 🧠 TIP: GUI slots start at 0 (top-left) and go up left-to-right, row-by-row
+# ┌─────────────────────────────────────┐
+# │  0   1   2   3   4   5   6   7   8  │  ← Row 1
+# │  9  10  11  12  13  14  15  16  17  │  ← Row 2
+# │ 18  19  20  21  22  23  24  25  26  │  ← Row 3
+# │ 27  28  29  30  31  32  33  34  35  │  ← Row 4
+# │ 36  37  38  39  40  41  42  43  44  │  ← Row 5
+# │ 45  46  47  48  49  50  51  52  53  │  ← Row 6
+# └─────────────────────────────────────┘
+
+
+# ╔═══🖼️ Menu Structure════════════════════════════════════════════════╗
+# This section defines rows, filler behavior, and optional buttons for each menu.
+# It replaces the menus.* section previously stored in config.yml to avoid duplication.
+menus:
+
+  category:                               # 1) Pick a category
+    rows: 6                               # GUI rows (1–6)
+    fill-empty-slots: true                # If true, fill any unused slot with filler-item
+    filler-item:
+      material: GRAY_STAINED_GLASS_PANE   # Background filler material (name/lore in messages.yml)
+    buttons:
+      silent-toggle: true                 # If true, show the silent toggle (slot/material set below)
+
+  severity:                               # 2) Pick a severity
+    rows: 1                               # GUI rows (1–6)
+    fill-empty-slots: true                # If true, fill any unused slot with filler-item
+    filler-item:
+      material: GRAY_STAINED_GLASS_PANE   # Background filler material (name/lore in messages.yml)
+    buttons:
+      back: true                          # If true, show a back button (slot/material set below)
+
+  confirm:                                # 3) Review + confirm
+    rows: 1                               # GUI rows (1–6)
+    fill-empty-slots: true                # If true, fill any unused slot with filler-item
+    filler-item:
+      material: GRAY_STAINED_GLASS_PANE   # Background filler material (name/lore in messages.yml)
+    buttons:
+      back: true                          # If true, show a back button (slot/material set below)
+      silent-toggle: true                 # If true, show the silent toggle (slot/material set below)
+      summary: true                       # If true, show the summary item (slot/material set below)
+
+  history:                                # 4) View target history (LiteBans)
+    rows: 6                               # GUI rows (1–6)   (history currently uses 6 rows)
+    fill-empty-slots: true                # If true, fill any unused slot with filler-item
+    filler-item:
+      material: GRAY_STAINED_GLASS_PANE   # Background filler material (name/lore in messages.yml)
+
+# NOTES:
+# • Confirm and Cancel buttons are REQUIRED for the confirm menu and are not configurable.
+# • Closing the inventory (ESC / click outside) cancels the flow by default (see config.yml behavior.on-inventory-close).
+
+
+# ╔═══📁 Category Menu Layout═══════════════════════════════════════════╗
+# This menu shows all configured categories (from config.yml -> categories.*).
+# The "rarity" field in config.yml is visual-only. Default layout clusters them by rarity.
+category-menu:
+
+  # Slots where category icons will be placed.
+  # If a category is missing here, it will not be shown.
+  categories:
+
+    # ────────────── Most Common ──────────────
+    griefing:
+      slot: 10                              # Slot for this category icon
+      material: TNT                         # 💥 Destruction / build damage
+    bypassing_chat_filter_intentional:
+      slot: 11                              # Slot for this category icon
+      material: WRITABLE_BOOK               # 📝 Manipulating/evading text rules
+    discrimination:
+      slot: 12                              # Slot for this category icon
+      material: COMPASS                     # 🚫 Moral violation / off-course behavior
+    spamming:
+      slot: 13                              # Slot for this category icon
+      material: PAPER                       # 📜 Repetitive messages
+    releasing_personal_info_self:
+      slot: 14                              # Slot for this category icon
+      material: BOOK                        # 🏷️ Personal info / identity exposure (self)
+    instigating_drama:
+      slot: 15                              # Slot for this category icon
+      material: FIREWORK_ROCKET             # 🧨 Stirring things up / escalating conflict
+    server_advertisement:
+      slot: 16                              # Slot for this category icon
+      material: GOAT_HORN                   # 📣 Broadcasting promotion
+    swearing:
+      slot: 19                              # Slot for this category icon
+      material: HONEYCOMB                   # 🧼 Clean up language
+    community_disruption:
+      slot: 25                              # Slot for this category icon
+      material: FIRE_CHARGE                 # 💥 Chaos / disorder
+    hacking:
+      slot: 28                              # Slot for this category icon
+      material: REDSTONE                    # 🧠 Technical exploitation
+    harassment:
+      slot: 34                              # Slot for this category icon
+      material: FEATHER                     # 🪶 Persistent targeting
+
+    # ────────────── Uncommon ──────────────
+    mute_evasion:
+      slot: 20                              # Slot for this category icon
+      material: NOTE_BLOCK                  # 🔇 Bypassing silence
+    ban_evasion:
+      slot: 21                              # Slot for this category icon
+      material: IRON_DOOR                   # 🚪 Unauthorized return
+    event_disruption:
+      slot: 22                              # Slot for this category icon
+      material: TARGET                      # 🎯 Interfering with organized play
+    ddos_dox_death_threats:
+      slot: 23                              # Slot for this category icon
+      material: WITHER_SKELETON_SKULL       # ☠️ Severe real-world harm
+    false_information:
+      slot: 24                              # Slot for this category icon
+      material: MAP                         # 🗺️ Misinformation
+    trolling:
+      slot: 31                              # Slot for this category icon
+      material: CARVED_PUMPKIN              # 🎭 Masked malicious intent
+
+    # ────────────── Rare ──────────────
+    extreme_discrimination:
+      slot: 29                              # Slot for this category icon
+      material: ANVIL                       # 🧱 Severe / heavy offense
+    chargeback_fraud_charges:
+      slot: 30                              # Slot for this category icon
+      material: GOLD_INGOT                  # 💳 Financial abuse
+    staff_impersonation:
+      slot: 32                              # Slot for this category icon
+      material: PLAYER_HEAD                 # 🪪 Identity misuse
+    predatory_behavior_explicit_content:
+      slot: 33                              # Slot for this category icon
+      material: BARRIER                     # 🔞 Zero tolerance / prohibited content
+    sending_malicious_links:
+      slot: 38                              # Slot for this category icon
+      material: POTION                      # 🧪 Harmful payload
+    inappropriate_name:
+      slot: 39                              # Slot for this category icon
+      material: NAME_TAG                    # ✏️ Naming violation
+    inappropriate_skin:
+      slot: 41                              # Slot for this category icon
+      material: LEATHER_CHESTPLATE          # 🧥 Appearance violation
+    abusing_support:
+      slot: 42                              # Slot for this category icon
+      material: ENDER_EYE                   # 🎧 Misuse of support systems
+
+    # ────────────── Uncategorized ──────────────
+    encouraging_bad_behavior:
+      slot: 37                              # Slot for this category icon
+      material: BLAZE_POWDER                # 🔥 Fueling harmful actions
+    inappropriate_behavior:
+      slot: 40                              # Slot for this category icon
+      material: HONEY_BOTTLE                # 🫠 Sticky/messy behavior (general)
+    death_wishes_self_harm_encouragement:
+      slot: 43                              # Slot for this category icon
+      material: RED_DYE                     # 💔 Emotional harm
+    disrespecting_others:
+      slot: 48                              # Slot for this category icon
+      material: BONE                        # 😠 Hostility / degrading others
+    other:
+      slot: 50                              # Slot for this category icon
+      material: SPYGLASS                    # ❓ Requires review
+
+  buttons:
+    silent-toggle:
+      slot: 2                              # Slot for Silent toggle
+      material: LEVER                      # Silent toggle icon material
+    history:
+      slot: 5                              # Slot for History button
+      material: WRITTEN_BOOK               # History button icon material
+
+
+# ╔═══📊 Severity Menu Layout═══════════════════════════════════════════╗
+# This menu shows severity options for the chosen category.
+# The actual severity list comes from config.yml categories.<id>.levels.
+severity-menu:
+
+  # ⚠️ These slots MUST be within the configured severity menu rows.
+  # With rows: 1, valid slots are 0–8.
+  # Note: slot 8 is intentionally used for the highest tier to visually separate it.
+  severity-slots:
+    - 3                                    # Slot used for severity option #1
+    - 4                                    # Slot used for severity option #2
+    - 5                                    # Slot used for severity option #3
+    - 6                                    # Slot used for severity option #4
+    - 8                                    # Slot used for severity option #5
+
+
+  # Icon materials are chosen based on the *punishment type* of each severity level,
+
+  severity-icons:
+    warn:
+      material: PAPER                      # WARN (no duration)
+    kick:
+      material: LEATHER_BOOTS              # KICK (no duration)
+    ban:
+      temp:
+        material:  IRON_SWORD              # Temporary ban (e.g. 7d)
+      perm:
+        material: NETHERITE_SWORD          # Permanent ban
+    mute:
+      temp:
+        material: CLOCK                    # Temporary mute (e.g. 30m)
+      perm:
+        material: OAK_SIGN                 # Permanent mute
+
+  buttons:
+    back:
+      slot: 0                              # Slot for the Back button (rows: 1 → 0–8)
+      material: ARROW                      # Icon material for Back
+
+
+# ╔═══✅ Confirm Menu Layout════════════════════════════════════════════╗
+# This menu is always the final screen:
+# - Confirm and Cancel are REQUIRED
+# - Back, Silent toggle, and Summary are optional (controlled above in menus.confirm.buttons)
+confirm-menu:
+
+  # ⚠️ These slots MUST be within the configured confirm menu rows.
+  # With rows: 1, valid slots are 0–8.
+  buttons:
+    confirm:
+      slot: 6                              # Slot for Confirm (REQUIRED)
+      material: LIME_CONCRETE              # Confirm icon material
+
+    cancel:
+      slot: 8                              # Slot for Cancel (REQUIRED)
+      material: RED_CONCRETE               # Cancel icon material
+
+    back:
+      slot: 0                              # Slot for Back
+      material: ARROW                      # Back icon material
+
+    silent-toggle:
+      slot: 2                              # Slot for Silent toggle
+      material: LEVER                      # Silent toggle icon material
+
+    summary:
+      slot: 3                              # Slot for Summary item
+      material: LECTERN                    # Summary icon material
+
+
+# ╔═══📜 Punishment History Menu Layout═════════════════════════════════╗
+# This menu displays the target's LiteBans punishment history.
+#
+# Layout pattern (recommended):
+# • Row 1: filter buttons (ALL/BANS/MUTES/WARNS/KICKS)
+# • Rows 2–5: history entry items (paged)
+# • Row 6: prev/back/next buttons
+#
+# NOTE:
+# • Your PunishmentHistoryMenu class currently uses PAGE_SIZE = 28.
+#   That is why content-slots is exactly 28 entries below.
+history-menu:
+
+  # Filter buttons (top row)
+  # These are the clickable buttons to apply filtering.
+  filters:
+    warns:
+      slot: 2                              # Slot for "Warnings" filter
+      material: PAPER                      # Icon material for "Warnings" filter
+    kicks:
+      slot: 3                              # Slot for "Kicks" filter
+      material: LEATHER_BOOTS              # Icon material for "Kicks" filter
+    mutes:
+      slot: 4                              # Slot for "Mutes" filter
+      material: NOTE_BLOCK                 # Icon material for "Mutes" filter
+    bans:
+      slot: 5                              # Slot for "Bans" filter
+      material: IRON_DOOR                  # Icon material for "Bans" filter
+    all:
+      slot: 6                              # Slot for "All" filter
+      material: COMPASS                    # Icon material for "All" filter
+
+  # Content slots (28 total)
+  # These are the exact 28 positions the GUI will fill per page.
+  # Chosen as: rows 2–5, columns 0–6 (keeps right column free for breathing room).
+  content-slots:
+    - 9                                    # Entry slot #1
+    - 10                                   # Entry slot #2
+    - 11                                   # Entry slot #3
+    - 12                                   # Entry slot #4
+    - 13                                   # Entry slot #5
+    - 14                                   # Entry slot #6
+    - 15                                   # Entry slot #7
+    - 18                                   # Entry slot #8
+    - 19                                   # Entry slot #9
+    - 20                                   # Entry slot #10
+    - 21                                   # Entry slot #11
+    - 22                                   # Entry slot #12
+    - 23                                   # Entry slot #13
+    - 24                                   # Entry slot #14
+    - 27                                   # Entry slot #15
+    - 28                                   # Entry slot #16
+    - 29                                   # Entry slot #17
+    - 30                                   # Entry slot #18
+    - 31                                   # Entry slot #19
+    - 32                                   # Entry slot #20
+    - 33                                   # Entry slot #21
+    - 36                                   # Entry slot #22
+    - 37                                   # Entry slot #23
+    - 38                                   # Entry slot #24
+    - 39                                   # Entry slot #25
+    - 40                                   # Entry slot #26
+    - 41                                   # Entry slot #27
+    - 42                                   # Entry slot #28
+
+  # Empty-state item material (shown when no history exists)
+  empty:
+    material: BARRIER                       # Icon material for "no history" state
+
+  # Navigation buttons (bottom row)
+  buttons:
+    prev:
+      slot: 45                              # Slot for Previous page
+      material: SPECTRAL_ARROW              # Icon material for Previous page
+    back:
+      slot: 49                              # Slot for Back button
+      material: ARROW                       # Icon material for Back button
+    next:
+      slot: 53                              # Slot for Next page
+      material: SPECTRAL_ARROW              # Icon material for Next page

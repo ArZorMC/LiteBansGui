@@ -1,0 +1,441 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                        LiteBansGUI Messages                        ║
+# ║        ALL display text lives here (MiniMessage + hex)             ║
+# ╚════════════════════════════════════════════════════════════════════╝
+#
+# Most plugin messages (including GUI labels and action bars) support MiniMessage.
+# MiniMessage uses tags like <red>, <bold>, <hover:...> to style your text.
+#
+# ✅ Basic Examples:
+# - <red>Red Text</red>
+# - <bold><yellow>Bold Yellow</yellow></bold>
+# - <#ff0000>Hex Color Example</#ff0000>
+# - <gradient:#fbbf24:#9b5de5>Gradient Text</gradient>
+#
+# 🖱️ Interactive Tags:
+# - <hover:show_text:'Extra info'><green>Hover Me</green></hover>
+# - <click:run_command:'/help'><aqua>Click Me</aqua></click>
+#
+# ⚠️ CLOSING TAGS REQUIRED:
+#   Every tag must be properly closed, or your message will break.
+#   ❌ Incorrect: <bold><yellow>Missing closing tag
+#   ✅ Correct:   <bold><yellow>Styled</yellow></bold>
+#
+# 📌 Built-in Placeholders (used in some messages)
+#
+# • Player / identity •
+#   <player>        = player name (actor / viewer)
+#   <target>        = punishment target name
+#   <staff>         = staff member name (alias of executor in some contexts)
+#   <executor>      = staff member executing the punishment
+#
+# • UUIDs •
+#   <player_uuid>   = player UUID
+#   <target_uuid>   = target UUID
+#   <staff_uuid>    = staff UUID
+#   <executor_uuid> = executor UUID
+#
+# • Punishment flow •
+#   <category>      = category id or display name
+#   <severity>      = severity level (numeric or display text)
+#   <type>          = punishment type (WARN, KICK, TEMPBAN, etc.)
+#   <duration>      = punishment duration (e.g., "7d", "perm")
+#   <reason>        = punishment reason text
+#   <silent>        = silent flag value (true / false)
+#
+# • Convenience •
+#   <punishment>    = formatted summary (example: "TEMPBAN:7d" or "WARN")
+#
+# These placeholders are replaced automatically by the plugin when messages are sent.
+# Not all messages use placeholders, only those that require dynamic data.
+# Only use placeholders in messages that support them, or they will appear as raw text.
+#
+# 🔧 Tips:
+# - To disable a message entirely, set its value to an empty string: ""
+#   Example: reload-complete: ""
+#
+# 🎨 LiteBansGUI Color Rules:
+# - Hero header:   <gradient:#2DD4BF:#60A5FA><bold>Title</bold></gradient>
+# - Label style:   <gradient:#2DD4BF:#60A5FA><bold>Label</bold></gradient><#94A3B8>:</#94A3B8>
+# - Breadcrumbs:   #94A3B8
+# - Primary text:  #64748B
+# - Muted text:    #94A3B8
+# - Values/info:   #7DD3FC
+# - Dim/disabled:  #64748B
+# - Success:       #34D399
+# - Warning:       #FBBF24
+# - Error:         #FB7185
+# - Extreme:       #E11D48
+#
+
+# === 🧱 Core / Fallback ===
+messages:
+  missing-key: "<#FB7185>Missing message</#FB7185><#94A3B8>:</#94A3B8> <#7DD3FC><key></#7DD3FC>"
+
+# === 🎮 Items ===
+item:
+  filler:
+    name: " "
+    lore: " "
+
+  locked:
+    name: "<#64748B><bold>LOCKED</bold></#64748B>"
+    lore:
+      - "<#94A3B8>You don’t have permission</#94A3B8>"
+      - "<#94A3B8>to use this option.</#94A3B8>"
+
+# === 🧩 Session lifecycle ===
+session:
+  cancelled:          "<#94A3B8>Punishment cancelled.</#94A3B8>"
+  cancelled-on-close: " "
+
+  target:
+    locked: "<#FBBF24><owner></#FBBF24> <#94A3B8>is already punishing</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
+    cancelled-by-owner: "<#94A3B8><owner> cancelled punishing</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
+
+# === ⌨️ Commands ===
+command:
+  players-only:          "<#FB7185>Players only.</#FB7185>"
+  missing-in-plugin-yml: "<#FBBF24>Command</#FBBF24> <#7DD3FC><command></#7DD3FC> <#FBBF24>is not defined in plugin.yml (skipping registration).</#FBBF24>"
+
+  punish:
+    usage:               "<#FB7185>Usage</#FB7185><#94A3B8>:</#94A3B8> <#64748B>/punish <#7DD3FC>player</#7DD3FC></#64748B>"
+    no-permission:       "<#FB7185>You don’t have permission to use this.</#FB7185>"
+    player-not-found:    "<#FB7185>Player not found</#FB7185><#94A3B8>:</#94A3B8> <#7DD3FC><target></#7DD3FC>"
+    session-exists:      "<#FBBF24>You already have an active punishment session.</#FBBF24> <#94A3B8>(Session replace is disabled.)</#94A3B8>"
+    session-replaced:    "<#94A3B8>Your previous punishment session was replaced.</#94A3B8>"
+
+  reload:
+    no-permission:       "<#FB7185>You don’t have permission to reload LiteBansGUI.</#FB7185>"
+    done:                "<#34D399>LiteBansGUI reloaded.</#34D399>"
+    sessions-cancelled:  "<#FBBF24>Active punishment sessions were cancelled.</#FBBF24>"
+
+  editor:
+    no-permission:       "<#FB7185>You don’t have permission to use the editor.</#FB7185>"
+    opened:              "<#94A3B8>Editor opened.</#94A3B8>"
+    saved:               "<#34D399>Layout saved.</#34D399>"
+    cancelled:           "<#94A3B8>Editor cancelled.</#94A3B8>"
+    usage:               "<#FB7185>Usage</#FB7185><#94A3B8>:</#94A3B8> <#64748B>/punisheditor <#7DD3FC>[save]</#7DD3FC></#64748B>"
+
+# === 🧰 Editor ===
+editor:
+  opened:     "<#94A3B8>Editor opened.</#94A3B8>"
+  not-open:   "<#FB7185>You must have the editor menu open to do that.</#FB7185>"
+  saved:      "<#34D399>Layout saved.</#34D399>"
+  save-error: "<#FB7185>Failed to save layout.</#FB7185> <#94A3B8>Check console for details.</#94A3B8>"
+
+  menu:
+    title: "<gradient:#2DD4BF:#60A5FA><bold>Editor</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>Category Layout</#64748B>"
+
+  category:
+    name: "<#7DD3FC><category></#7DD3FC>"
+    lore:
+      - "<#94A3B8>Drag to move this category icon.</#94A3B8>"
+      - "<#94A3B8>Click with an item to change its material.</#94A3B8>"
+
+# === 🗨️ Reason prompt ===
+reason:
+  prompt-start:     "<#64748B>Type the punishment reason in chat.</#64748B> <#94A3B8>(</#94A3B8><#7DD3FC><seconds>s</#7DD3FC><#94A3B8>)</#94A3B8> <#64748B>Type</#64748B> <#7DD3FC>cancel</#7DD3FC> <#64748B>to cancel.</#64748B>"
+  prompt-cancelled: ""
+  prompt-timeout:   "<#FB7185>Reason input timed out.</#FB7185> <#94A3B8>Punishment cancelled.</#94A3B8>"
+
+# === ⚙️ Dispatch ===
+punish:
+  success: "<#34D399>Punishment applied to</#34D399> <#7DD3FC><target></#7DD3FC><#34D399>.</#34D399>"
+
+  dispatch:
+    missing-plugin: "<#FB7185>LiteBans is not installed or not enabled.</#FB7185>"
+    failed:         "<#FB7185>Failed to dispatch punishment.</#FB7185> <#94A3B8>(</#94A3B8><#7DD3FC><reason></#7DD3FC><#94A3B8>)</#94A3B8>"
+
+# === 🪟 Menus ===
+menu:
+  category:
+    title: "<gradient:#2DD4BF:#60A5FA><bold>Punish</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>Select Category</#64748B>"
+    lore:  "<#94A3B8><italic:false>Select this category.</italic></#94A3B8>"
+
+  severity:
+    title: "<gradient:#2DD4BF:#60A5FA><bold>Punish</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>Select Severity</#64748B>"
+
+    option:
+      name: "<#64748B><bold><type></bold></#64748B> <#94A3B8>(Lvl <severity>)</#94A3B8>"
+      lore:
+        with-duration:
+          - "<#94A3B8><italic:false>Duration:</italic></#94A3B8> <#7DD3FC><duration></#7DD3FC>"
+          - "<#94A3B8><italic:false>Category:</italic></#94A3B8> <#7DD3FC><category></#7DD3FC>"
+        no-duration:
+          - "<#94A3B8><italic:false>Category:</italic></#94A3B8> <#7DD3FC><category></#7DD3FC>"
+
+  confirm:
+    title: "<gradient:#2DD4BF:#60A5FA><bold>Punish</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>Confirm</#64748B>"
+
+  target-head:
+    name: "<gradient:#2DD4BF:#60A5FA><bold>Target</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><target></#7DD3FC>"
+    lore:
+      - "<#60A5FA><italic:false><target_status></italic></#60A5FA>"
+      - "<#94A3B8><italic:false>Confirm this is the correct player.</italic></#94A3B8>"
+      - "<#94A3B8><italic:false>Select a punishment category below.</italic></#94A3B8>"
+
+  history:
+    title: "<gradient:#2DD4BF:#60A5FA><bold>Punish</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>History</#64748B>"
+    empty: "<#94A3B8>No punishment history found.</#94A3B8>"
+
+    filters:
+      all:
+        name: "<#64748B><bold>All</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
+        lore:
+          - "<#94A3B8><italic:false>Show <#7DD3FC>all</#7DD3FC> punishment types.</italic></#94A3B8>"
+          - "<#94A3B8><italic:false>Click to clear filtering.</italic></#94A3B8>"
+
+      bans:
+        name: "<#64748B><bold>Bans</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
+        lore:
+          - "<#94A3B8><italic:false>Only show <#FB7185>bans</#FB7185> and <#FB7185>tempbans</#FB7185>.</italic></#94A3B8>"
+          - "<#94A3B8><italic:false>Click to filter to bans.</italic></#94A3B8>"
+
+      mutes:
+        name: "<#64748B><bold>Mutes</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
+        lore:
+          - "<#94A3B8><italic:false>Only show <#FBBF24>mutes</#FBBF24> and <#FBBF24>tempmutes</#FBBF24>.</italic></#94A3B8>"
+          - "<#94A3B8><italic:false>Click to filter to mutes.</italic></#94A3B8>"
+
+      warns:
+        name: "<#64748B><bold>Warnings</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
+        lore:
+          - "<#94A3B8><italic:false>Only show <#34D399>warnings</#34D399>.</italic></#94A3B8>"
+          - "<#94A3B8><italic:false>Click to filter to warnings.</italic></#94A3B8>"
+
+      kicks:
+        name: "<#64748B><bold>Kicks</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
+        lore:
+          - "<#94A3B8><italic:false>Only show <#60A5FA>kicks</#60A5FA>.</italic></#94A3B8>"
+          - "<#94A3B8><italic:false>Click to filter to kicks.</italic></#94A3B8>"
+
+    entry:
+      name: "<#7DD3FC><type></#7DD3FC> <#94A3B8>(<duration>)</#94A3B8>"
+      lore:
+        - "<gradient:#2DD4BF:#60A5FA><bold>Staff</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><staff></#7DD3FC>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><date></#94A3B8>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Status</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><status></#7DD3FC>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Remaining</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><remaining></#7DD3FC>"
+
+      lore-removed:
+        - "<gradient:#2DD4BF:#60A5FA><bold>Staff</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><staff></#7DD3FC>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><date></#94A3B8>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Status</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><status></#7DD3FC>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Removed By</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><removed_by></#7DD3FC>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Removed Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><removed_date></#94A3B8>"
+        - "<gradient:#2DD4BF:#60A5FA><bold>Removed Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><removed_reason></#94A3B8>"
+
+    prev:
+      name: "<#64748B>← Prev</#64748B>"
+      lore:
+        - "<#94A3B8>Go to the previous page.</#94A3B8>"
+
+    next:
+      name: "<#64748B>Next →</#64748B>"
+      lore:
+        - "<#94A3B8>Go to the next page.</#94A3B8>"
+
+  back:
+    name: "<#64748B>← Back</#64748B>"
+    lore:
+      - "<#94A3B8>Return to the previous menu.</#94A3B8>"
+
+  confirm-button:
+    name: "<#34D399><bold>Confirm</bold></#34D399>"
+    lore:
+      - "<#94A3B8>Apply this punishment.</#94A3B8>"
+
+  cancel-button:
+    name: "<#FB7185><bold>Cancel</bold></#FB7185>"
+    lore:
+      - "<#94A3B8>Cancel punishment.</#94A3B8>"
+
+  silent-toggle:
+    name: "<gradient:#2DD4BF:#60A5FA><bold>Silent</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><silent></#7DD3FC>"
+    lore:
+      - "<#94A3B8>Toggle whether this is announced.</#94A3B8>"
+
+  history-button:
+    name: "<gradient:#2DD4BF:#60A5FA><bold>History</bold></gradient>"
+    lore:
+      - "<#94A3B8><italic:false>View this player’s punishment history.</italic></#94A3B8>"
+      - "<#94A3B8><italic:false>Click to open the history viewer.</italic></#94A3B8>"
+
+  summary:
+    name: "<gradient:#2DD4BF:#60A5FA><bold>Summary</bold></gradient>"
+    lore:
+      - "<gradient:#2DD4BF:#60A5FA><bold>Target</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><target></#7DD3FC>"
+      - "<gradient:#2DD4BF:#60A5FA><bold>Category</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><category></#7DD3FC>"
+      - "<gradient:#2DD4BF:#60A5FA><bold>Type</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><type></#7DD3FC>"
+      - "<gradient:#2DD4BF:#60A5FA><bold>Duration</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><duration></#7DD3FC>"
+      - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
+
+  denied:
+    click: "<#FB7185>You can’t use that option.</#FB7185>"
+
+# === 🏷️ Categories ===
+category:
+  griefing:
+    name: "<#64748B><bold>Griefing</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Destruction or build damage.</italic></#94A3B8>"
+
+  bypassing_chat_filter_intentional:
+    name: "<#64748B><bold>Bypassing Chat Filter</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Manipulating or evading chat rules.</italic></#94A3B8>"
+
+  discrimination:
+    name: "<#64748B><bold>Discrimination</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Discriminatory speech or behavior.</italic></#94A3B8>"
+
+  spamming:
+    name: "<#64748B><bold>Spamming</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Repetitive messages or spam.</italic></#94A3B8>"
+
+  releasing_personal_info_self:
+    name: "<#64748B><bold>Releasing Personal Info</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Personal info or identity exposure.</italic></#94A3B8>"
+
+  instigating_drama:
+    name: "<#64748B><bold>Instigating Drama</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Stirring things up or escalating conflict.</italic></#94A3B8>"
+
+  server_advertisement:
+    name: "<#64748B><bold>Server Advertisement</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Broadcasting promotion or advertisements.</italic></#94A3B8>"
+
+  swearing:
+    name: "<#64748B><bold>Swearing</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Language that needs to be cleaned up.</italic></#94A3B8>"
+
+  community_disruption:
+    name: "<#64748B><bold>Community Disruption</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Chaos, disorder, or disrupting play.</italic></#94A3B8>"
+
+  hacking:
+    name: "<#64748B><bold>Hacking</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Cheating or technical exploitation.</italic></#94A3B8>"
+
+  harassment:
+    name: "<#64748B><bold>Harassment</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Persistent targeting or harassment.</italic></#94A3B8>"
+
+  mute_evasion:
+    name: "<#64748B><bold>Mute Evasion</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Bypassing silence or a mute.</italic></#94A3B8>"
+
+  ban_evasion:
+    name: "<#64748B><bold>Ban Evasion</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Unauthorized return after a ban.</italic></#94A3B8>"
+
+  event_disruption:
+    name: "<#64748B><bold>Event Disruption</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Interfering with organized play or events.</italic></#94A3B8>"
+
+  ddos_dox_death_threats:
+    name: "<#64748B><bold>DDoS / Dox / Threats</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Severe real-world harm or threats.</italic></#94A3B8>"
+
+  false_information:
+    name: "<#64748B><bold>False Information</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Misinformation or false claims.</italic></#94A3B8>"
+
+  trolling:
+    name: "<#64748B><bold>Trolling</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Masked malicious intent or trolling.</italic></#94A3B8>"
+
+  extreme_discrimination:
+    name: "<#64748B><bold>Extreme Discrimination</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Severe or escalating discrimination.</italic></#94A3B8>"
+
+  chargeback_fraud_charges:
+    name: "<#64748B><bold>Chargeback / Fraud</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Financial abuse, fraud, or chargebacks.</italic></#94A3B8>"
+
+  staff_impersonation:
+    name: "<#64748B><bold>Staff Impersonation</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Identity misuse or impersonation.</italic></#94A3B8>"
+
+  predatory_behavior_explicit_content:
+    name: "<#64748B><bold>Predatory / Explicit Content</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Zero tolerance prohibited content.</italic></#94A3B8>"
+
+  sending_malicious_links:
+    name: "<#64748B><bold>Malicious Links</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Harmful payloads or malicious links.</italic></#94A3B8>"
+
+  inappropriate_name:
+    name: "<#64748B><bold>Inappropriate Name</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Naming violation.</italic></#94A3B8>"
+
+  inappropriate_skin:
+    name: "<#64748B><bold>Inappropriate Skin</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Appearance violation.</italic></#94A3B8>"
+
+  abusing_support:
+    name: "<#64748B><bold>Abusing Support</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Misuse of support systems.</italic></#94A3B8>"
+
+  encouraging_bad_behavior:
+    name: "<#64748B><bold>Encouraging Bad Behavior</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Fueling harmful actions.</italic></#94A3B8>"
+
+  inappropriate_behavior:
+    name: "<#64748B><bold>Inappropriate Behavior</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>General behavior rule violation.</italic></#94A3B8>"
+
+  death_wishes_self_harm_encouragement:
+    name: "<#64748B><bold>Self-harm Encouragement</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Emotional harm or self-harm encouragement.</italic></#94A3B8>"
+
+  disrespecting_others:
+    name: "<#64748B><bold>Disrespecting Others</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Hostility or degrading others.</italic></#94A3B8>"
+
+  other:
+    name: "<#64748B><bold>Other</bold></#64748B>"
+    lore:
+      - "<#94A3B8><italic:false>Requires staff review.</italic></#94A3B8>"
+
+# === 🧾 Formatting helpers ===
+format:
+  none:  "<#94A3B8>None</#94A3B8>"
+  true:  "<#34D399>True</#34D399>"
+  false: "<#FB7185>False</#FB7185>"
+
+# === 🧷 Config errors ===
+config:
+  version-mismatch:
+    config: "<#FB7185>[LiteBansGui]</#FB7185> <#64748B>config.yml version mismatch</#64748B><#94A3B8>:</#94A3B8> <#94A3B8>found</#94A3B8> <#7DD3FC><found></#7DD3FC><#94A3B8>,</#94A3B8> <#94A3B8>expected</#94A3B8> <#7DD3FC><expected></#7DD3FC><#94A3B8>.</#94A3B8> <#64748B>Please update your config.</#64748B>"
+    layout: "<#FB7185>[LiteBansGui]</#FB7185> <#64748B>layout.yml version mismatch</#64748B><#94A3B8>:</#94A3B8> <#94A3B8>found</#94A3B8> <#7DD3FC><found></#7DD3FC><#94A3B8>,</#94A3B8> <#94A3B8>expected</#94A3B8> <#7DD3FC><expected></#7DD3FC><#94A3B8>.</#94A3B8> <#64748B>Please update your layout.</#64748B>"

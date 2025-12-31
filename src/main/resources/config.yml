@@ -1,0 +1,194 @@
+# ╔════════════════════════════════════════════════════════════════════╗
+# ║                         LiteBansGui Config                         ║
+# ║     Guided punishment flow for LiteBans using InventoryFramework   ║
+# ╚════════════════════════════════════════════════════════════════════╝
+#
+# ✅ All messages are in messages.yml (hex/MiniMessage supported)
+# 🎛️ GUI layout + icon materials are in layout.yml (slots are configured there)
+# 🧠 This file focuses on BEHAVIOR + PUNISHMENT DEFINITIONS
+
+
+# ╔═══🧭 Global Behavior════════════════════════════════════════════════╗
+behavior:
+
+  cancel-sessions-on-reload: true         # If true, reloading the plugin cancels active punishment flows and closes menus
+
+  allow-session-replace: true             # If true, running /punish again replaces the existing session for that moderator
+
+  on-inventory-close: CANCEL              # What happens if a moderator closes a GUI mid-flow
+  # Options: CANCEL (recommended), KEEP
+
+  silent-default: true                    # Default silent toggle state when the flow reaches the confirm stage
+
+
+# ╔═══💬 Reason Input (Chat)════════════════════════════════════════════╗
+reason-input:
+
+  timeout-seconds: 60                     # How long staff has to type a reason before the flow cancels (in seconds)
+
+  cancel-words:                           # Words that instantly cancel the reason prompt (case-insensitive)
+    - "cancel"                            # Default cancel keyword
+
+  allow-none-word: true                   # If true, staff can intentionally submit no reason using the none-words below
+
+  none-words:                             # Words that count as "no reason" (case-insensitive)
+    - "none"                              # Default none keyword
+    - "no reason"                         # Friendly alternative
+
+
+# ╔═══🔒 Locked / Unclickable Buttons═══════════════════════════════════╗
+# Permission nodes themselves are declared in plugin.yml and enforced internally.
+# This section controls ONLY how denied buttons appear + what feedback is played.
+permissions:
+
+  deny-appearance: LOCKED                 # How to display buttons the user cannot click
+    # Options:
+    #   LOCKED  → show item with locked overlay; clicking is denied
+    #   HIDE    → button is not shown at all
+  #   REPLACE → button is replaced by the menu filler item
+
+  deny-click-sound:                       # Sound played when a moderator clicks a denied/locked button
+    enabled: true                         # Master toggle for the deny click sound
+    sound: "BLOCK_NOTE_BLOCK_BASS"        # Sound enum name (Spigot/Paper Sound)
+    volume: 0.8                           # Sound volume (0.0–1.0+)
+    pitch: 0.8                            # Sound pitch (0.5–2.0 typically)
+
+# ╔═══🚨 Punishment Categories & Severities═════════════════════════════╗
+# Custom punishment categories grouped by rarity (visual only).
+#
+# Severity format:
+#   • With duration → "ID=TYPE:DURATION"   (TEMPMUTE, TEMPBAN, BAN)
+#   • No duration   → "ID=TYPE"            (WARN, KICK)
+#
+# Duration examples: PERM, 30m, 1h, 1d, 7d, 30d
+#
+# ℹ️ Categories with only ONE level skip the severity menu
+#    and proceed directly to reason input.
+categories:
+
+  # ╔═══🟥 Most Common══════════════════════════════════════════════════╗
+  griefing:
+    rarity: COMMON
+    levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:30m", "4=TEMPBAN:7d", "5=BAN:PERM"]
+
+  bypassing_chat_filter_intentional:
+    rarity: COMMON
+    levels: ["1=WARN", "2=TEMPMUTE:30m", "3=TEMPMUTE:1d", "4=TEMPBAN:7d", "5=BAN:PERM"]
+
+  discrimination:
+    rarity: COMMON
+    levels: ["1=TEMPBAN:7d", "2=BAN:PERM"]
+
+  spamming:
+    rarity: COMMON
+    levels: ["1=WARN", "2=TEMPMUTE:30m", "3=TEMPMUTE:1d", "4=TEMPBAN:7d"]
+
+  releasing_personal_info_self:
+    rarity: COMMON
+    levels: ["1=TEMPBAN:7d", "2=BAN:PERM"]
+
+  instigating_drama:
+    rarity: COMMON
+    levels: ["1=WARN", "2=TEMPMUTE:1h", "3=TEMPMUTE:1d", "4=TEMPBAN:7d"]
+
+  server_advertisement:
+    rarity: COMMON
+    levels: ["1=TEMPBAN:7d", "2=BAN:PERM"]
+
+  swearing:
+    rarity: COMMON
+    levels: ["1=WARN", "2=TEMPMUTE:30m", "3=TEMPMUTE:1d"]
+
+  community_disruption:
+    rarity: COMMON
+    levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:1d", "4=TEMPBAN:7d", "5=BAN:PERM"]
+
+  hacking:
+    rarity: COMMON
+    levels: ["1=TEMPBAN:7d", "2=BAN:PERM"]
+
+  harassment:
+    rarity: COMMON
+    levels: ["1=WARN", "2=TEMPMUTE:30m", "3=TEMPMUTE:1d", "4=TEMPBAN:7d", "5=BAN:PERM"]
+
+
+  # ╔═══🟧 Uncommon═════════════════════════════════════════════════════╗
+  mute_evasion:
+    rarity: UNCOMMON
+    levels: ["1=TEMPMUTE:7d", "2=TEMPBAN:7d", "3=BAN:PERM"]
+
+  ban_evasion:
+    rarity: UNCOMMON
+    levels: ["1=BAN:PERM"]
+
+  event_disruption:
+    rarity: UNCOMMON
+    levels: ["1=KICK", "2=TEMPBAN:7d", "3=BAN:PERM"]
+
+  ddos_dox_death_threats:
+    rarity: UNCOMMON
+    levels: ["1=BAN:PERM"]
+
+  false_information:
+    rarity: UNCOMMON
+    levels: ["1=WARN", "2=TEMPMUTE:1d", "3=TEMPBAN:7d"]
+
+  trolling:
+    rarity: UNCOMMON
+    levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:1d", "4=TEMPBAN:7d"]
+
+
+  # ╔═══🟨 Rare═════════════════════════════════════════════════════════╗
+  extreme_discrimination:
+    rarity: RARE
+    levels: ["1=TEMPBAN:30d", "2=BAN:PERM"]
+
+  chargeback_fraud_charges:
+    rarity: RARE
+    levels: ["1=BAN:PERM"]
+
+  staff_impersonation:
+    rarity: RARE
+    levels: ["1=TEMPBAN:30d", "2=BAN:PERM"]
+
+  predatory_behavior_explicit_content:
+    rarity: RARE
+    levels: ["1=BAN:PERM"]
+
+  sending_malicious_links:
+    rarity: RARE
+    levels: ["1=TEMPBAN:30d", "2=BAN:PERM"]
+
+  inappropriate_name:
+    rarity: RARE
+    levels: ["1=KICK", "2=TEMPBAN:7d"]
+
+  inappropriate_skin:
+    rarity: RARE
+    levels: ["1=KICK", "2=TEMPBAN:7d"]
+
+  abusing_support:
+    rarity: RARE
+    levels: ["1=WARN", "2=TEMPMUTE:7d", "3=TEMPBAN:7d", "4=BAN:PERM"]
+
+
+  # ╔═══🟩 Uncategorized════════════════════════════════════════════════╗
+  encouraging_bad_behavior:
+    rarity: UNCATEGORIZED
+    levels: ["1=WARN", "2=TEMPMUTE:1d", "3=TEMPBAN:7d"]
+
+  inappropriate_behavior:
+    rarity: UNCATEGORIZED
+    levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:1d", "4=TEMPBAN:7d"]
+
+  death_wishes_self_harm_encouragement:
+    rarity: UNCATEGORIZED
+    levels: ["1=TEMPBAN:30d", "2=BAN:PERM"]
+
+  disrespecting_others:
+    rarity: UNCATEGORIZED
+    levels: ["1=WARN", "2=TEMPMUTE:1d", "3=TEMPBAN:7d"]
+
+  other:
+    rarity: UNCATEGORIZED
+    levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:1d", "4=TEMPBAN:7d", "5=BAN:PERM"]
