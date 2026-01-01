@@ -8,6 +8,12 @@
  * • Loads LiteBans data asynchronously and renders safely on the main thread.
  * • Provides a back button to return to the category menu without cancelling session.
  *
+ * ✅ Shift-click entry actions (permission gated)
+ * • SHIFT + LEFT on ACTIVE entry   => Pardon (requires reason + confirm)
+ * • SHIFT + RIGHT on REMOVED entry => Reinstate (requires reason + confirm)
+ * • Reinstate re-applies only the remaining time (computed at removal time).
+ * • Reinstate is refused if remaining time is expired (<= 0).
+ *
  * 🔧 Examples
  * • gui.openHistory(moderator, session)
  *
@@ -23,6 +29,10 @@
  * • menu.denied.click
  * • menu.back.name
  * • menu.back.lore
+ *
+ * • (NEW)
+ * • menu.history.action.line
+ * • menu.history.action.reinstate-expired
  * =============================================================================
  */
 package com.github.arzormc.gui;
@@ -33,9 +43,11 @@ import com.github.arzormc.config.MessageService;
 import com.github.arzormc.config.PlaceholderUtil;
 import com.github.arzormc.punish.PermissionService;
 import com.github.arzormc.punish.PunishSession;
+import com.github.arzormc.punish.ReasonPromptService;
 import com.github.arzormc.punish.SessionManager;
 
 import litebans.api.Database;
+import net.kyori.adventure.text.Component;
 
 import org.bukkit.Bukkit;
 import org.bukkit.enchantments.Enchantment;
@@ -44,10 +56,13 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.sql.PreparedStatement;
@@ -77,6 +92,8 @@ public final class PunishmentHistoryMenu implements Listener {
     private static final String ENTRY_NAME_KEY = "menu.history.entry.name";
     private static final String ENTRY_LORE_KEY = "menu.history.entry.lore";
     private static final String ENTRY_LORE_REMOVED_KEY = "menu.history.entry.lore-removed";
+    private static final String ENTRY_ACTION_PARDON_KEY = "menu.history.entry.action-pardon";
+    private static final String ENTRY_ACTION_REINSTATE_KEY = "menu.history.entry.action-reinstate";
 
     private static final String BACK_NAME_KEY = "menu.back.name";
     private static final String BACK_LORE_KEY = "menu.back.lore";
@@ -89,6 +106,14 @@ public final class PunishmentHistoryMenu implements Listener {
 
     private static final String DENIED_CLICK_KEY = "menu.denied.click";
 
+    private static final String ACTION_LINE_KEY = "menu.history.action.line";
+    private static final String REINSTATE_EXPIRED_KEY = "menu.history.action.reinstate-expired";
+
+    private static final String CONFIRM_NAME_KEY = "menu.confirm-button.name";
+    private static final String CONFIRM_LORE_KEY = "menu.confirm-button.lore";
+    private static final String CANCEL_NAME_KEY = "menu.cancel-button.name";
+    private static final String CANCEL_LORE_KEY = "menu.cancel-button.lore";
+
     private static final int PAGE_SIZE = 28;
     private static final int FETCH_MULTIPLIER = 4;
 
@@ -96,11 +121,9 @@ public final class PunishmentHistoryMenu implements Listener {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                     .withZone(ZoneId.systemDefault());
 
-    // LiteBans H2 schema (common fields on bans/mutes/warnings):
-    // UUID, REASON, BANNED_BY_NAME, TIME, UNTIL, ACTIVE, REMOVED_BY_NAME, REMOVED_BY_REASON, REMOVED_BY_DATE
-    // KICKS doesn't have removal fields; we synthesize defaults.
     private static final String SQL_UNION = """
-            SELECT u.type AS type,
+            SELECT u.id AS id,
+                   u.type AS type,
                    u.reason AS reason,
                    u.staff AS staff,
                    u.time AS time,
@@ -110,7 +133,8 @@ public final class PunishmentHistoryMenu implements Listener {
                    u.removed_by_reason AS removed_by_reason,
                    u.removed_by_date AS removed_by_date
             FROM (
-                SELECT 'BAN'  AS type,
+                SELECT ID AS id,
+                       'BAN'  AS type,
                        REASON AS reason,
                        BANNED_BY_NAME AS staff,
                        TIME AS time,
@@ -124,7 +148,8 @@ public final class PunishmentHistoryMenu implements Listener {
 
                 UNION ALL
 
-                SELECT 'MUTE' AS type,
+                SELECT ID AS id,
+                       'MUTE' AS type,
                        REASON AS reason,
                        BANNED_BY_NAME AS staff,
                        TIME AS time,
@@ -138,7 +163,8 @@ public final class PunishmentHistoryMenu implements Listener {
 
                 UNION ALL
 
-                SELECT 'WARN' AS type,
+                SELECT ID AS id,
+                       'WARN' AS type,
                        REASON AS reason,
                        BANNED_BY_NAME AS staff,
                        TIME AS time,
@@ -152,7 +178,8 @@ public final class PunishmentHistoryMenu implements Listener {
 
                 UNION ALL
 
-                SELECT 'KICK' AS type,
+                SELECT ID AS id,
+                       'KICK' AS type,
                        REASON AS reason,
                        BANNED_BY_NAME AS staff,
                        TIME AS time,
@@ -181,11 +208,69 @@ public final class PunishmentHistoryMenu implements Listener {
             ) u
             """;
 
+    private static final String SQL_PARDON_BAN = """
+            UPDATE PUBLIC.LITEBANS_BANS
+            SET ACTIVE = 0,
+                REMOVED_BY_NAME = ?,
+                REMOVED_BY_REASON = ?,
+                REMOVED_BY_DATE = ?
+            WHERE ID = ?
+            """;
+
+    private static final String SQL_PARDON_MUTE = """
+            UPDATE PUBLIC.LITEBANS_MUTES
+            SET ACTIVE = 0,
+                REMOVED_BY_NAME = ?,
+                REMOVED_BY_REASON = ?,
+                REMOVED_BY_DATE = ?
+            WHERE ID = ?
+            """;
+
+    private static final String SQL_PARDON_WARN = """
+            UPDATE PUBLIC.LITEBANS_WARNINGS
+            SET ACTIVE = 0,
+                REMOVED_BY_NAME = ?,
+                REMOVED_BY_REASON = ?,
+                REMOVED_BY_DATE = ?
+            WHERE ID = ?
+            """;
+
+    private static final String SQL_REINSTATE_BAN = """
+            UPDATE PUBLIC.LITEBANS_BANS
+            SET ACTIVE = 1,
+                REMOVED_BY_NAME = '',
+                REMOVED_BY_REASON = '',
+                REMOVED_BY_DATE = NULL,
+                UNTIL = ?
+            WHERE ID = ?
+            """;
+
+    private static final String SQL_REINSTATE_MUTE = """
+            UPDATE PUBLIC.LITEBANS_MUTES
+            SET ACTIVE = 1,
+                REMOVED_BY_NAME = '',
+                REMOVED_BY_REASON = '',
+                REMOVED_BY_DATE = NULL,
+                UNTIL = ?
+            WHERE ID = ?
+            """;
+
+    private static final String SQL_REINSTATE_WARN = """
+            UPDATE PUBLIC.LITEBANS_WARNINGS
+            SET ACTIVE = 1,
+                REMOVED_BY_NAME = '',
+                REMOVED_BY_REASON = '',
+                REMOVED_BY_DATE = NULL,
+                UNTIL = ?
+            WHERE ID = ?
+            """;
+
     private final ConfigManager config;
     private final MessageService messages;
     private final ItemFactory items;
     private final PermissionService perms;
     private final SessionManager sessions;
+    private final ReasonPromptService reasonPrompts;
     private final GuiManager gui;
 
     private final JavaPlugin plugin;
@@ -193,6 +278,11 @@ public final class PunishmentHistoryMenu implements Listener {
     private final Map<UUID, Integer> pageByModerator = new HashMap<>();
     private final Map<UUID, Filter> filterByModerator = new HashMap<>();
     private final Map<UUID, EnumMap<Filter, Integer>> filterSlotByModerator = new HashMap<>();
+
+    private final Map<UUID, Map<Integer, Entry>> entryBySlotByModerator = new HashMap<>();
+
+    private final Map<UUID, PendingAction> pendingByModerator = new HashMap<>();
+    private final Map<UUID, ViewState> viewStateByModerator = new HashMap<>();
 
     // ======================
     // 🧩 Filters
@@ -216,7 +306,18 @@ public final class PunishmentHistoryMenu implements Listener {
         }
     }
 
+    private enum ViewState {
+        LIST,
+        ACTION_CONFIRM
+    }
+
+    private enum ActionType {
+        PARDON,
+        REINSTATE
+    }
+
     private record Entry(
+            long id,
             String type,
             String reason,
             String staff,
@@ -225,7 +326,24 @@ public final class PunishmentHistoryMenu implements Listener {
             boolean active,
             String removedByName,
             String removedByReason,
-            long removedByDateMillis
+            long removedByDateMillis,
+            boolean untilWasSeconds
+    ) {
+    }
+
+    private record PendingAction(
+            ActionType actionType,
+            long id,
+            String baseType, // BAN / MUTE / WARN
+            UUID targetUuid,
+            String targetName,
+            long timeMillis,
+            long untilMillis,
+            boolean untilWasSeconds,
+            long removedByDateMillis,
+            long remainingMillis, // remaining at time of removal (reinstate)
+            String reason,
+            String staffName
     ) {
     }
 
@@ -235,6 +353,7 @@ public final class PunishmentHistoryMenu implements Listener {
             ItemFactory items,
             PermissionService perms,
             SessionManager sessions,
+            ReasonPromptService reasonPrompts,
             GuiManager gui
     ) {
         this.config = Objects.requireNonNull(config, "config");
@@ -242,6 +361,7 @@ public final class PunishmentHistoryMenu implements Listener {
         this.items = Objects.requireNonNull(items, "items");
         this.perms = Objects.requireNonNull(perms, "perms");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
+        this.reasonPrompts = Objects.requireNonNull(reasonPrompts, "reasonPrompts");
         this.gui = Objects.requireNonNull(gui, "gui");
 
         this.plugin = JavaPlugin.getProvidingPlugin(getClass());
@@ -266,6 +386,7 @@ public final class PunishmentHistoryMenu implements Listener {
         pageByModerator.putIfAbsent(modUuid, 0);
         filterByModerator.putIfAbsent(modUuid, Filter.ALL);
         filterSlotByModerator.putIfAbsent(modUuid, new EnumMap<>(Filter.class));
+        viewStateByModerator.put(modUuid, ViewState.LIST);
 
         ConfigManager.Snapshot snap = config.snapshot();
         ConfigModels.MenuDefinition menuDef = snap.layout().historyMenu();
@@ -302,6 +423,7 @@ public final class PunishmentHistoryMenu implements Listener {
 
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (isNotViewingHistory(moderator, modUuid)) return;
+                if (viewStateByModerator.getOrDefault(modUuid, ViewState.LIST) != ViewState.LIST) return;
 
                 if (rows.isEmpty() && page > 0) {
                     int newPage = page - 1;
@@ -313,6 +435,7 @@ public final class PunishmentHistoryMenu implements Listener {
 
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             if (isNotViewingHistory(moderator, modUuid)) return;
+                            if (viewStateByModerator.getOrDefault(modUuid, ViewState.LIST) != ViewState.LIST) return;
                             render(moderator, session, rows2, totals2);
                         });
                     });
@@ -392,11 +515,23 @@ public final class PunishmentHistoryMenu implements Listener {
                     if (type.isEmpty()) continue;
                     if (!matches(type, filter)) continue;
 
-                    long timeMillis = normalizeEpochMillis(rs.getLong("time"));
+                    long id;
+                    try {
+                        id = rs.getLong("id");
+                    } catch (Exception ignored) {
+                        continue;
+                    }
+                    if (id <= 0L) continue;
+
+                    long timeRaw = rs.getLong("time");
+                    long timeMillis = normalizeEpochMillis(timeRaw);
 
                     long untilMillis = 0L;
+                    boolean untilWasSeconds = false;
                     try {
-                        untilMillis = normalizeEpochMillis(rs.getLong("until"));
+                        long untilRaw = rs.getLong("until");
+                        untilWasSeconds = (untilRaw > 0L && untilRaw < 100_000_000_000L);
+                        untilMillis = normalizeEpochMillis(untilRaw);
                     } catch (Exception ignored) {
                     }
 
@@ -425,6 +560,7 @@ public final class PunishmentHistoryMenu implements Listener {
                     }
 
                     out.add(new Entry(
+                            id,
                             type,
                             safe(rs.getString("reason")),
                             safe(rs.getString("staff")),
@@ -433,7 +569,8 @@ public final class PunishmentHistoryMenu implements Listener {
                             active,
                             removedByName,
                             removedByReason,
-                            removedByDateMillis
+                            removedByDateMillis,
+                            untilWasSeconds
                     ));
 
                     if (out.size() >= PAGE_SIZE) break;
@@ -477,9 +614,10 @@ public final class PunishmentHistoryMenu implements Listener {
         if (player == null || !player.isOnline()) return true;
 
         Inventory top = player.getOpenInventory().getTopInventory();
-        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID modUuid))) return true;
+        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID holderUuid))) return true;
 
-        return type != GuiManager.MenuType.HISTORY || !modUuid.equals(moderatorUuid);
+        return type != GuiManager.MenuType.HISTORY
+                || !holderUuid.equals(moderatorUuid);
     }
 
     // ======================
@@ -487,6 +625,10 @@ public final class PunishmentHistoryMenu implements Listener {
     // ======================
 
     private void render(Player moderator, PunishSession session, List<Entry> entries, EnumMap<Filter, Integer> totals) {
+        UUID modUuid = moderator.getUniqueId();
+
+        if (viewStateByModerator.getOrDefault(modUuid, ViewState.LIST) != ViewState.LIST) return;
+
         ConfigManager.Snapshot snap = config.snapshot();
         ConfigModels.MenuDefinition menuDef = snap.layout().historyMenu();
         ConfigModels.HistoryMenuLayout history = snap.layout().history();
@@ -504,6 +646,9 @@ public final class PunishmentHistoryMenu implements Listener {
         inv.setItem(history.backButton().slot(), items.icon(history.backButton().material(), BACK_NAME_KEY, BACK_LORE_KEY, Map.of()));
         inv.setItem(history.prevButton().slot(), items.icon(history.prevButton().material(), PREV_NAME_KEY, PREV_LORE_KEY, Map.of()));
         inv.setItem(history.nextButton().slot(), items.icon(history.nextButton().material(), NEXT_NAME_KEY, NEXT_LORE_KEY, Map.of()));
+
+        Map<Integer, Entry> slotMap = new HashMap<>();
+        entryBySlotByModerator.put(modUuid, slotMap);
 
         List<Integer> contentSlots = history.contentSlots();
         if (entries.isEmpty()) {
@@ -545,7 +690,6 @@ public final class PunishmentHistoryMenu implements Listener {
 
             ph.put("status", status);
 
-            // Only meaningful when ACTIVE, but we can still provide a value (templates decide if they show it)
             String remaining;
             if (activeNow) {
                 if (e.untilMillis() <= 0L) remaining = "Permanent";
@@ -555,7 +699,6 @@ public final class PunishmentHistoryMenu implements Listener {
             }
             ph.put("remaining", remaining);
 
-            // Removed metadata placeholders (only used by the removed template)
             ph.put("removed_by", safe(e.removedByName()).isBlank() ? "N/A" : e.removedByName());
             ph.put("removed_reason", safe(e.removedByReason()).isBlank() ? "N/A" : e.removedByReason());
             ph.put("removed_date", e.removedByDateMillis() <= 0L ? "N/A" : DATE_FMT.format(Instant.ofEpochMilli(e.removedByDateMillis())));
@@ -565,10 +708,42 @@ public final class PunishmentHistoryMenu implements Listener {
             String entryMat = entryMaterialForType(history, e.type());
             ItemStack item = items.icon(entryMat, ENTRY_NAME_KEY, loreKey, ph);
 
+            appendActionHintLine(moderator, item, removed, activeNow);
+
             int slot = contentSlots.get(idx++);
             if (slot < 0 || slot >= inv.getSize()) continue;
+
             inv.setItem(slot, item);
+            slotMap.put(slot, e);
         }
+    }
+
+    private void appendActionHintLine(Player moderator, ItemStack item, boolean removed, boolean activeNow) {
+        if (item == null) return;
+
+        String key = null;
+
+        if (!removed && activeNow && perms.canPardonHistory(moderator)) {
+            key = ENTRY_ACTION_PARDON_KEY;
+        }
+
+        if (removed && perms.canReinstateHistory(moderator)) {
+            key = ENTRY_ACTION_REINSTATE_KEY;
+        }
+
+        if (key == null) return;
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        List<Component> lore = meta.lore();
+        if (lore == null) lore = new ArrayList<>();
+        else lore = new ArrayList<>(lore);
+
+        lore.add(messages.component(key));
+
+        meta.lore(lore);
+        item.setItemMeta(meta);
     }
 
     private static boolean isRemoved(Entry e) {
@@ -582,7 +757,6 @@ public final class PunishmentHistoryMenu implements Listener {
         if (removed) return false;
         if (!e.active()) return false;
 
-        // If UNTIL is present and already passed, treat as not active.
         long until = e.untilMillis();
         return until <= 0L || until > nowMillis;
     }
@@ -730,23 +904,41 @@ public final class PunishmentHistoryMenu implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
         Inventory top = event.getView().getTopInventory();
-        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID ignored))) return;
+        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID holderUuid))) return;
         if (type != GuiManager.MenuType.HISTORY) return;
 
-        if (event.getClickedInventory() != top) {
-            event.setCancelled(true);
-            return;
-        }
+        UUID uuid = player.getUniqueId();
+        if (!uuid.equals(holderUuid)) return;
 
+        // 🔒 Critical: cancel EVERYTHING while this GUI is open (including bottom inventory)
         event.setCancelled(true);
 
-        UUID uuid = player.getUniqueId();
+        // Only process logic when clicking inside top inventory
+        if (event.getClickedInventory() != top) return;
+
         int slot = event.getRawSlot();
+        if (slot < 0 || slot >= top.getSize()) return;
+
+        ViewState view = viewStateByModerator.getOrDefault(uuid, ViewState.LIST);
+
+        if (view == ViewState.ACTION_CONFIRM) {
+            handleActionConfirmClick(player, slot);
+            return;
+        }
 
         ConfigModels.HistoryMenuLayout history = config.snapshot().layout().history();
 
         if (slot == history.backButton().slot()) {
-            sessions.get(player).ifPresent(s -> gui.openCategory(player, s));
+            sessions.get(player).ifPresent(s -> {
+                GuiManager.MenuType last = s.lastMenu();
+                if (last == GuiManager.MenuType.SEVERITY) {
+                    gui.openSeverity(player, s);
+                } else if (last == GuiManager.MenuType.CONFIRM) {
+                    gui.openConfirm(player, s);
+                } else {
+                    gui.openCategory(player, s);
+                }
+            });
             return;
         }
 
@@ -776,20 +968,346 @@ public final class PunishmentHistoryMenu implements Listener {
         if (slot == history.nextButton().slot()) {
             pageByModerator.compute(uuid, (k, v) -> (v == null ? 1 : v + 1));
             sessions.get(player).ifPresent(s -> loadAsync(player, s));
+            return;
         }
+
+        if (!event.isShiftClick()) return;
+
+        Map<Integer, Entry> slotMap = entryBySlotByModerator.get(uuid);
+        if (slotMap == null) return;
+
+        Entry entry = slotMap.get(slot);
+        if (entry == null) return;
+
+        String baseType = normalizeActionBaseType(entry.type());
+        if (baseType.isEmpty()) return;
+
+        sessions.get(player).ifPresent(session -> beginShiftAction(player, session, entry, event.getClick()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+
+        Inventory top = event.getView().getTopInventory();
+        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID holderUuid))) return;
+        if (type != GuiManager.MenuType.HISTORY) return;
+
+        if (!player.getUniqueId().equals(holderUuid)) return;
+
+        int topSize = top.getSize();
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot < topSize) {
+                event.setCancelled(true);
+                return;
+            }
+        }
+    }
+
+    private void beginShiftAction(Player player, PunishSession session, Entry entry, ClickType clickType) {
+        UUID uuid = player.getUniqueId();
+
+        long now = System.currentTimeMillis();
+        boolean removed = isRemoved(entry);
+        boolean activeNow = isActiveNow(entry, removed, now);
+
+        ActionType action;
+        if (clickType == ClickType.SHIFT_LEFT) {
+            if (!activeNow) return;
+            if (!perms.canPardonHistory(player)) {
+                perms.playDenyClick(player);
+                player.sendMessage(messages.component(DENIED_CLICK_KEY));
+                return;
+            }
+            action = ActionType.PARDON;
+        } else if (clickType == ClickType.SHIFT_RIGHT) {
+            if (!removed) return;
+            if (!perms.canReinstateHistory(player)) {
+                perms.playDenyClick(player);
+                player.sendMessage(messages.component(DENIED_CLICK_KEY));
+                return;
+            }
+            action = ActionType.REINSTATE;
+        } else {
+            return;
+        }
+
+        final long remainingAtRemoval;
+        if (action == ActionType.REINSTATE && entry.untilMillis() > 0L && entry.removedByDateMillis() > 0L) {
+            remainingAtRemoval = Math.max(0L, entry.untilMillis() - entry.removedByDateMillis());
+        } else {
+            remainingAtRemoval = 0L;
+        }
+
+        if (action == ActionType.REINSTATE && entry.untilMillis() > 0L && remainingAtRemoval == 0L) {
+            player.sendMessage(messages.component(
+                    REINSTATE_EXPIRED_KEY,
+                    PlaceholderUtil.merge(
+                            PlaceholderUtil.forSession(session, uuid, player.getName()),
+                            Map.of("id", Long.toString(entry.id()))
+                    )
+            ));
+            return;
+        }
+
+        PunishSession promptSession = PunishSession.start(session.targetUuid(), session.targetName());
+
+        gui.markPrompting(uuid);
+        player.closeInventory();
+
+        reasonPrompts.begin(
+                player,
+                promptSession,
+                (p, s) -> {
+                    gui.clearPrompting(uuid);
+
+                    String reason = (s == null ? "" : s.reason());
+                    if (reason == null) reason = "";
+
+                    PendingAction pending = new PendingAction(
+                            action,
+                            entry.id(),
+                            normalizeActionBaseType(entry.type()),
+                            session.targetUuid(),
+                            session.targetName(),
+                            entry.timeMillis(),
+                            entry.untilMillis(),
+                            entry.untilWasSeconds(),
+                            entry.removedByDateMillis(),
+                            remainingAtRemoval,
+                            reason,
+                            player.getName()
+                    );
+
+                    pendingByModerator.put(uuid, pending);
+                    openActionConfirm(player, session, pending);
+                },
+                (p, s) -> gui.clearPrompting(uuid)
+        );
+    }
+
+    private void openActionConfirm(Player player, PunishSession session, PendingAction pending) {
+        UUID uuid = player.getUniqueId();
+
+        ConfigManager.Snapshot snap = config.snapshot();
+        ConfigModels.MenuDefinition menuDef = snap.layout().confirmMenu();
+
+        int size = menuDef.size();
+        Inventory inv = Bukkit.createInventory(
+                new GuiManager.Holder(GuiManager.MenuType.HISTORY, uuid),
+                size,
+                messages.component("menu.confirm.title")
+        );
+
+        if (menuDef.fillEmptySlots()) {
+            ItemStack filler = items.filler(menuDef);
+            for (int i = 0; i < size; i++) inv.setItem(i, filler);
+        }
+
+        Map<String, String> ph = new HashMap<>(PlaceholderUtil.forSession(session, uuid, player.getName()));
+
+        String typeDisplay = buildHistoryTypeDisplay(pending.baseType(), pending.timeMillis(), pending.untilMillis());
+        String durationDisplay = buildHistoryDurationDisplay(pending.baseType(), pending.timeMillis(), pending.untilMillis());
+
+        ph.put("type", typeDisplay);
+        ph.put("duration", durationDisplay);
+        ph.put("reason", pending.reason() == null ? "" : pending.reason());
+
+        if (safe(ph.get("category")).isBlank()) ph.put("category", "History");
+        if (safe(ph.get("severity")).isBlank()) ph.put("severity", "—");
+
+        String actionWord = (pending.actionType() == ActionType.PARDON) ? "PARDON" : "REINSTATE";
+        ph.put("history_action", actionWord);
+        ph.put("history_id", Long.toString(pending.id()));
+        ph.put("history_action_line", messages.raw(ACTION_LINE_KEY));
+
+        if (pending.untilMillis() <= 0L) {
+            ph.put("history_remaining", "Permanent");
+        } else if (pending.actionType() == ActionType.REINSTATE) {
+            ph.put("history_remaining", formatCompactDuration(Math.max(0L, pending.remainingMillis())));
+        } else {
+            ph.put("history_remaining", "N/A");
+        }
+
+        ConfigModels.LayoutIcon confirm = snap.layout().confirmConfirm();
+        ConfigModels.LayoutIcon cancel = snap.layout().confirmCancel();
+
+        int confirmSlot = clampSlot(confirm.slot(), size);
+        int cancelSlot = clampSlot(cancel.slot(), size);
+
+        inv.setItem(confirmSlot, items.icon(confirm.material(), CONFIRM_NAME_KEY, CONFIRM_LORE_KEY, ph));
+        inv.setItem(cancelSlot, items.icon(cancel.material(), CANCEL_NAME_KEY, CANCEL_LORE_KEY, ph));
+
+        if (snap.layout().confirmSummaryEnabled()) {
+            ConfigModels.LayoutIcon summary = snap.layout().confirmSummary();
+            int summarySlot = clampSlot(summary.slot(), size);
+            inv.setItem(summarySlot, items.iconTrusted(summary.material(), "menu.summary.name", "menu.summary.lore", ph));
+        }
+
+        viewStateByModerator.put(uuid, ViewState.ACTION_CONFIRM);
+        gui.markHistory(uuid);
+        player.openInventory(inv);
+    }
+
+    private void handleActionConfirmClick(Player player, int slot) {
+        UUID uuid = player.getUniqueId();
+
+        ConfigManager.Snapshot snap = config.snapshot();
+
+        ConfigModels.MenuDefinition menuDef = snap.layout().confirmMenu();
+        int size = menuDef.size();
+
+        ConfigModels.LayoutIcon confirm = snap.layout().confirmConfirm();
+        ConfigModels.LayoutIcon cancel = snap.layout().confirmCancel();
+
+        int confirmSlot = clampSlot(confirm.slot(), size);
+        int cancelSlot = clampSlot(cancel.slot(), size);
+
+        PendingAction pending = pendingByModerator.get(uuid);
+        if (pending == null) {
+            viewStateByModerator.put(uuid, ViewState.LIST);
+            player.closeInventory();
+            return;
+        }
+
+        if (slot == cancelSlot) {
+            pendingByModerator.remove(uuid);
+            viewStateByModerator.put(uuid, ViewState.LIST);
+            player.closeInventory();
+            return;
+        }
+
+        if (slot != confirmSlot) return;
+
+        pendingByModerator.remove(uuid);
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean ok;
+            if (pending.actionType() == ActionType.PARDON) {
+                ok = applyPardon(pending);
+            } else {
+                ok = applyReinstate(pending);
+            }
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                viewStateByModerator.put(uuid, ViewState.LIST);
+
+                if (!player.isOnline()) return;
+
+                if (!ok) {
+                    player.sendMessage(messages.component(
+                            "punish.dispatch.failed",
+                            Map.of("reason", "history_action_failed")
+                    ));
+                } else {
+                    player.sendMessage(messages.component(
+                            "punish.success",
+                            PlaceholderUtil.merge(
+                                    PlaceholderUtil.forSession(
+                                            PunishSession.start(pending.targetUuid(), pending.targetName()),
+                                            uuid,
+                                            player.getName()
+                                    ),
+                                    Map.of("reason", pending.reason() == null ? "" : pending.reason())
+                            )
+                    ));
+                }
+
+                player.closeInventory();
+            });
+        });
+    }
+
+    private boolean applyPardon(PendingAction pending) {
+        String type = pending.baseType();
+        if (type.isEmpty()) return false;
+
+        String sql = switch (type) {
+            case "BAN" -> SQL_PARDON_BAN;
+            case "MUTE" -> SQL_PARDON_MUTE;
+            case "WARN" -> SQL_PARDON_WARN;
+            default -> null;
+        };
+        if (sql == null) return false;
+
+        try (PreparedStatement ps = Database.get().prepareStatement(sql)) {
+            ps.setString(1, safe(pending.staffName()));
+            ps.setString(2, pending.reason() == null ? "" : pending.reason());
+            ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            ps.setLong(4, pending.id());
+
+            return ps.executeUpdate() > 0;
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[PunishmentHistoryMenu] Pardon failed for ID " + pending.id() + ": " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private boolean applyReinstate(PendingAction pending) {
+        String type = pending.baseType();
+        if (type.isEmpty()) return false;
+
+        String sql = switch (type) {
+            case "BAN" -> SQL_REINSTATE_BAN;
+            case "MUTE" -> SQL_REINSTATE_MUTE;
+            case "WARN" -> SQL_REINSTATE_WARN;
+            default -> null;
+        };
+        if (sql == null) return false;
+
+        long now = System.currentTimeMillis();
+
+        long newUntilMillis;
+        if (pending.untilMillis() <= 0L) {
+            newUntilMillis = 0L;
+        } else {
+            long remaining = Math.max(0L, pending.remainingMillis());
+            if (remaining == 0L) return false;
+            newUntilMillis = now + remaining;
+        }
+
+        long newUntilRaw = pending.untilWasSeconds()
+                ? (newUntilMillis <= 0L ? 0L : (newUntilMillis / 1000L))
+                : newUntilMillis;
+
+        try (PreparedStatement ps = Database.get().prepareStatement(sql)) {
+            ps.setLong(1, newUntilRaw);
+            ps.setLong(2, pending.id());
+            return ps.executeUpdate() > 0;
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[PunishmentHistoryMenu] Reinstate failed for ID " + pending.id() + ": " + ex.getMessage());
+            return false;
+        }
+    }
+
+    private static String normalizeActionBaseType(String rawType) {
+        if (rawType == null) return "";
+        String t = rawType.trim().toUpperCase(Locale.ROOT);
+
+        if (t.contains("BAN")) return "BAN";
+        if (t.contains("MUTE")) return "MUTE";
+        if (t.equals("WARN")) return "WARN";
+        return "";
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onClose(InventoryCloseEvent event) {
         Inventory top = event.getView().getTopInventory();
-        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID moderatorUuid))) return;
+        if (!(top.getHolder() instanceof GuiManager.Holder(GuiManager.MenuType type, UUID holderUuid))) return;
         if (type != GuiManager.MenuType.HISTORY) return;
 
-        pageByModerator.remove(moderatorUuid);
-        filterByModerator.remove(moderatorUuid);
-        filterSlotByModerator.remove(moderatorUuid);
+        if (gui.isPrompting(holderUuid)) return;
 
-        HandlerList.unregisterAll(this);
+        pageByModerator.remove(holderUuid);
+        filterByModerator.remove(holderUuid);
+        filterSlotByModerator.remove(holderUuid);
+        entryBySlotByModerator.remove(holderUuid);
+        pendingByModerator.remove(holderUuid);
+        viewStateByModerator.remove(holderUuid);
+
+        if (pageByModerator.isEmpty()) {
+            HandlerList.unregisterAll(this);
+        }
     }
 
     private static Filter filterForSlot(EnumMap<Filter, Integer> map, int slot) {
@@ -798,5 +1316,12 @@ public final class PunishmentHistoryMenu implements Listener {
             if (v != null && v == slot) return e.getKey();
         }
         return null;
+    }
+
+    private static int clampSlot(int slot, int size) {
+        if (size <= 0) return 0;
+        if (slot < 0) return 0;
+        if (slot >= size) return size - 1;
+        return slot;
     }
 }

@@ -258,41 +258,40 @@ public final class CategoryMenu implements Listener {
         int slot = event.getRawSlot();
         if (slot < 0 || slot >= top.getSize()) return;
 
+        PunishSession session = sessions.get(player).orElse(null);
+        if (session == null) return;
+
         Integer silentSlot = silentSlotByModerator.get(moderatorUuid);
         if (silentSlot != null && slot == silentSlot) {
-            PunishSession session = sessions.get(player).orElse(null);
-            if (session != null) {
-                session.setSilent(!session.silent());
+            session.setSilent(!session.silent());
 
-                ConfigModels.LayoutIcon silentIcon = config.snapshot().layout().categorySilentToggle();
+            ConfigModels.LayoutIcon silentIcon = config.snapshot().layout().categorySilentToggle();
 
-                Map<String, String> base = PlaceholderUtil.forSession(session, moderatorUuid, player.getName());
-                String silentValueKey = session.silent() ? FORMAT_TRUE_KEY : FORMAT_FALSE_KEY;
+            Map<String, String> base = PlaceholderUtil.forSession(session, moderatorUuid, player.getName());
+            String silentValueKey = session.silent() ? FORMAT_TRUE_KEY : FORMAT_FALSE_KEY;
 
-                Map<String, String> ph = PlaceholderUtil.merge(
-                        base,
-                        Map.of("silent", messages.raw(silentValueKey))
-                );
+            Map<String, String> ph = PlaceholderUtil.merge(
+                    base,
+                    Map.of("silent", messages.raw(silentValueKey))
+            );
 
-                ItemStack silentItem = items.iconTrusted(
-                        silentIcon.material(),
-                        SILENT_NAME_KEY,
-                        SILENT_LORE_KEY,
-                        ph
-                );
+            ItemStack silentItem = items.iconTrusted(
+                    silentIcon.material(),
+                    SILENT_NAME_KEY,
+                    SILENT_LORE_KEY,
+                    ph
+            );
 
-                top.setItem(silentSlot, silentItem);
-            }
+            top.setItem(silentSlot, silentItem);
             return;
         }
 
         Integer historySlot = historySlotByModerator.get(moderatorUuid);
         if (historySlot != null && slot == historySlot) {
-            PunishSession session = sessions.get(player).orElse(null);
-            if (session != null) {
-                player.closeInventory();
-                gui.openHistory(player, session);
-            }
+            session.setLastMenu(GuiManager.MenuType.CATEGORY);
+
+            player.closeInventory();
+            gui.openHistory(player, session);
             return;
         }
 
@@ -310,9 +309,6 @@ public final class CategoryMenu implements Listener {
             return;
         }
 
-        PunishSession session = sessions.get(player).orElse(null);
-        if (session == null) return;
-
         session.setCategoryId(categoryId);
 
         if (cat.hasSingleLevel()) {
@@ -320,6 +316,8 @@ public final class CategoryMenu implements Listener {
             beginReason(player, session);
             return;
         }
+
+        session.setLastMenu(GuiManager.MenuType.CATEGORY);
 
         player.closeInventory();
         gui.openSeverity(player, session);
@@ -355,6 +353,9 @@ public final class CategoryMenu implements Listener {
                 session,
                 (p, s) -> {
                     gui.clearPrompting(uuid);
+
+                    s.setLastMenu(GuiManager.MenuType.CATEGORY);
+
                     gui.openConfirm(p, s);
                 },
                 (p, s) -> {

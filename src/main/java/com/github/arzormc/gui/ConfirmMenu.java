@@ -224,7 +224,16 @@ public final class ConfirmMenu implements Listener {
 
         if (slot == slots.backSlot()) {
             player.closeInventory();
-            gui.openSeverity(player, session);
+
+            GuiManager.MenuType last = session.lastMenu();
+            if (last == GuiManager.MenuType.HISTORY) {
+                gui.openHistory(player, session);
+            } else if (last == GuiManager.MenuType.SEVERITY) {
+                gui.openSeverity(player, session);
+            } else {
+                gui.openCategory(player, session);
+            }
+
             return;
         }
 

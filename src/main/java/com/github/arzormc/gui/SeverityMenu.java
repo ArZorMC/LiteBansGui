@@ -276,6 +276,9 @@ public final class SeverityMenu implements Listener {
                 session,
                 (p, s) -> {
                     gui.clearPrompting(uuid);
+
+                    s.setLastMenu(GuiManager.MenuType.SEVERITY);
+
                     gui.openConfirm(p, s);
                 },
                 (p, s) -> {
@@ -288,5 +291,4 @@ public final class SeverityMenu implements Listener {
                 }
         );
     }
-
 }

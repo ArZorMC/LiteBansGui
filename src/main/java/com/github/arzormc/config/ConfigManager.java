@@ -154,7 +154,7 @@ public final class ConfigManager {
         }
 
         public static Snapshot empty() {
-            BehaviorSettings behavior = new BehaviorSettings(true, true, OnInventoryCloseAction.CANCEL, false);
+            BehaviorSettings behavior = new BehaviorSettings(true, true, OnInventoryCloseAction.CANCEL, true);
             ReasonInputSettings reason = new ReasonInputSettings(60, List.of("cancel"), true, List.of("none", "no reason"));
             PermissionUiSettings perm = new PermissionUiSettings(
                     DenyAppearance.LOCKED,
@@ -487,7 +487,7 @@ public final class ConfigManager {
         boolean allowReplace = cfg.getBoolean("behavior.allow-session-replace", true);
         OnInventoryCloseAction closeAction =
                 OnInventoryCloseAction.parse(cfg.getString("behavior.on-inventory-close"), OnInventoryCloseAction.CANCEL);
-        boolean silentDefault = cfg.getBoolean("behavior.silent-default", false);
+        boolean silentDefault = cfg.getBoolean("behavior.silent-default", true);
 
         return new BehaviorSettings(cancelOnReload, allowReplace, closeAction, silentDefault);
     }

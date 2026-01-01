@@ -19,6 +19,7 @@
 package com.github.arzormc.punish;
 
 import com.github.arzormc.config.ConfigModels;
+import com.github.arzormc.gui.GuiManager;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -40,6 +41,12 @@ public final class PunishSession {
     private boolean silent;
     private boolean silentExplicitlySet;
 
+    // ======================
+    // 🧭 Navigation (back button)
+    // ======================
+
+    private GuiManager.MenuType lastMenu;
+
     private PunishSession(UUID targetUuid, String targetName) {
         this.targetUuid = Objects.requireNonNull(targetUuid, "targetUuid");
         this.targetName = normalizeName(targetName);
@@ -51,6 +58,8 @@ public final class PunishSession {
 
         this.silent = false;
         this.silentExplicitlySet = false;
+
+        this.lastMenu = null;
     }
 
     public static PunishSession start(UUID targetUuid, String targetName) {
@@ -95,6 +104,18 @@ public final class PunishSession {
 
     public void setReason(String reason) {
         this.reason = normalizeReason(reason);
+    }
+
+    // ======================
+    // 🧭 Navigation (back button)
+    // ======================
+
+    public GuiManager.MenuType lastMenu() {
+        return lastMenu;
+    }
+
+    public void setLastMenu(GuiManager.MenuType lastMenu) {
+        this.lastMenu = lastMenu;
     }
 
     // ======================

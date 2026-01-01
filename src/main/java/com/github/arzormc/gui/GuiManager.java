@@ -47,8 +47,6 @@ public final class GuiManager {
         SEVERITY,
         CONFIRM,
         HISTORY,
-
-        // Special "state" while the moderator is typing a reason in chat.
         PROMPT
     }
 
@@ -118,7 +116,7 @@ public final class GuiManager {
 
         openMenus.put(moderator.getUniqueId(), MenuType.HISTORY);
 
-        new PunishmentHistoryMenu(config, messages, items, perms, sessions, this)
+        new PunishmentHistoryMenu(config, messages, items, perms, sessions, reasonPrompts, this)
                 .open(moderator, session);
     }
 
@@ -129,6 +127,16 @@ public final class GuiManager {
     public void markPrompting(UUID moderatorUuid) {
         if (moderatorUuid == null) return;
         openMenus.put(moderatorUuid, MenuType.PROMPT);
+    }
+
+    public void markHistory(UUID moderatorUuid) {
+        if (moderatorUuid == null) return;
+        openMenus.put(moderatorUuid, MenuType.HISTORY);
+    }
+
+    public boolean isPrompting(UUID moderatorUuid) {
+        if (moderatorUuid == null) return false;
+        return openMenus.get(moderatorUuid) == MenuType.PROMPT;
     }
 
     public void clearPrompting(UUID moderatorUuid) {

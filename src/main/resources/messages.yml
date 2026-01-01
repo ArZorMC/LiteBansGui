@@ -179,6 +179,10 @@ menu:
     title: "<gradient:#2DD4BF:#60A5FA><bold>Punish</bold></gradient> <#94A3B8>›</#94A3B8> <#64748B>History</#64748B>"
     empty: "<#94A3B8>No punishment history found.</#94A3B8>"
 
+    action:
+      line: "<gradient:#2DD4BF:#60A5FA><bold>Action</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><history_action></#7DD3FC> <#94A3B8>(ID <history_id>)</#94A3B8>"
+      reinstate-expired: "<#FB7185>That punishment has already expired and can’t be reinstated. (ID <id>)</#FB7185>"
+
     filters:
       all:
         name: "<#64748B><bold>All</bold></#64748B> <#94A3B8>(<total>)</#94A3B8>"
@@ -213,20 +217,25 @@ menu:
     entry:
       name: "<#7DD3FC><type></#7DD3FC> <#94A3B8>(<duration>)</#94A3B8>"
       lore:
-        - "<gradient:#2DD4BF:#60A5FA><bold>Staff</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><staff></#7DD3FC>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><date></#94A3B8>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Status</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><status></#7DD3FC>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Remaining</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><remaining></#7DD3FC>"
+        - "<#94A3B8><italic:false><#64748B>Staff</#64748B> <#475569>›</#475569> <#7DD3FC><staff></#7DD3FC></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Reason</#64748B> <#475569>›</#475569> <#94A3B8><reason></#94A3B8></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Date</#64748B> <#475569>›</#475569> <#94A3B8><date></#94A3B8></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Status</#64748B> <#475569>›</#475569> <#7DD3FC><status></#7DD3FC></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Remaining</#64748B> <#475569>›</#475569> <#7DD3FC><remaining></#7DD3FC></italic></#94A3B8>"
+        - ""
 
       lore-removed:
-        - "<gradient:#2DD4BF:#60A5FA><bold>Staff</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><staff></#7DD3FC>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><date></#94A3B8>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Status</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><status></#7DD3FC>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Removed By</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><removed_by></#7DD3FC>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Removed Date</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><removed_date></#94A3B8>"
-        - "<gradient:#2DD4BF:#60A5FA><bold>Removed Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><removed_reason></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Staff</#64748B> <#475569>›</#475569> <#7DD3FC><staff></#7DD3FC></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Reason</#64748B> <#475569>›</#475569> <#94A3B8><reason></#94A3B8></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Date</#64748B> <#475569>›</#475569> <#94A3B8><date></#94A3B8></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Status</#64748B> <#475569>›</#475569> <#7DD3FC><status></#7DD3FC></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Removed By</#64748B> <#475569>›</#475569> <#7DD3FC><removed_by></#7DD3FC></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Removed Date</#64748B> <#475569>›</#475569> <#94A3B8><removed_date></#94A3B8></italic></#94A3B8>"
+        - "<#94A3B8><italic:false><#64748B>Removed Reason</#64748B> <#475569>›</#475569> <#94A3B8><removed_reason></#94A3B8></italic></#94A3B8>"
+        - ""
+
+      action-pardon: "<italic:false><#A78BFA>✦</#A78BFA> <#A78BFA><bold>Hint</bold></#A78BFA> <#475569>•</#475569> <#E2E8F0>[Shift + Left-Click]</#E2E8F0> <#475569>→</#475569> <#34D399><bold>Pardon</bold></#34D399></italic>"
+      action-reinstate: "<italic:false><#A78BFA>✦</#A78BFA> <#A78BFA><bold>Hint</bold></#A78BFA> <#475569>•</#475569> <#E2E8F0>[Shift + Right-Click]</#E2E8F0> <#475569>→</#475569> <#FB7185><bold>Reinstate</bold></#FB7185></italic>"
 
     prev:
       name: "<#64748B>← Prev</#64748B>"
@@ -267,11 +276,11 @@ menu:
   summary:
     name: "<gradient:#2DD4BF:#60A5FA><bold>Summary</bold></gradient>"
     lore:
-      - "<gradient:#2DD4BF:#60A5FA><bold>Target</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><target></#7DD3FC>"
-      - "<gradient:#2DD4BF:#60A5FA><bold>Category</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><category></#7DD3FC>"
-      - "<gradient:#2DD4BF:#60A5FA><bold>Type</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><type></#7DD3FC>"
-      - "<gradient:#2DD4BF:#60A5FA><bold>Duration</bold></gradient><#94A3B8>:</#94A3B8> <#7DD3FC><duration></#7DD3FC>"
-      - "<gradient:#2DD4BF:#60A5FA><bold>Reason</bold></gradient><#94A3B8>:</#94A3B8> <#94A3B8><reason></#94A3B8>"
+      - "<#94A3B8><italic:false><#64748B>Target</#64748B> <#475569>›</#475569> <#7DD3FC><target></#7DD3FC></italic></#94A3B8>"
+      - "<#94A3B8><italic:false><#64748B>Category</#64748B> <#475569>›</#475569> <#7DD3FC><category></#7DD3FC></italic></#94A3B8>"
+      - "<#94A3B8><italic:false><#64748B>Type</#64748B> <#475569>›</#475569> <#7DD3FC><type></#7DD3FC></italic></#94A3B8>"
+      - "<#94A3B8><italic:false><#64748B>Duration</#64748B> <#475569>›</#475569> <#7DD3FC><duration></#7DD3FC></italic></#94A3B8>"
+      - "<#94A3B8><italic:false><#64748B>Reason</#64748B> <#475569>›</#475569> <#94A3B8><reason></#94A3B8></italic></#94A3B8>"
 
   denied:
     click: "<#FB7185>You can’t use that option.</#FB7185>"

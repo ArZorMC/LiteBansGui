@@ -9,12 +9,14 @@
  *     - category severity level clickability
  *     - editor/reload permissions
  *     - punishment history visibility + filters
+ *     - punishment history entry actions (pardon/reinstate)
  * • Plays the configured deny-click sound (if enabled) on denied interactions.
  *
  * 🔧 Examples
  * • if (!perms.canUsePunish(player)) { ... }
  * • if (!perms.canUseCategory(player, "griefing")) { ... }
  * • if (!perms.canViewHistory(player)) { ... }
+ * • if (!perms.canPardonHistory(player)) { ... }
  * • perms.playDenyClick(player);
  *
  * ✨ Feedback (messages.yml keys)
@@ -48,6 +50,10 @@ public final class PermissionService {
 
     private static final String NODE_HISTORY_BASE = "litebansgui.history";
     private static final String NODE_HISTORY_FILTER_PREFIX = "litebansgui.history.filter.";
+
+    private static final String NODE_HISTORY_ACTION_WILDCARD = "litebansgui.history.action.*";
+    private static final String NODE_HISTORY_PARDON = "litebansgui.history.pardon";
+    private static final String NODE_HISTORY_REINSTATE = "litebansgui.history.reinstate";
 
     private final ConfigManager config;
 
@@ -100,6 +106,24 @@ public final class PermissionService {
 
         return !player.hasPermission(
                 NODE_HISTORY_FILTER_PREFIX + normalize(filterKey)
+        );
+    }
+
+    // ======================
+    // 🧩 History entry actions
+    // ======================
+
+    public boolean canPardonHistory(Player player) {
+        return player != null && (
+                player.hasPermission(NODE_HISTORY_PARDON)
+                        || player.hasPermission(NODE_HISTORY_ACTION_WILDCARD)
+        );
+    }
+
+    public boolean canReinstateHistory(Player player) {
+        return player != null && (
+                player.hasPermission(NODE_HISTORY_REINSTATE)
+                        || player.hasPermission(NODE_HISTORY_ACTION_WILDCARD)
         );
     }
 
