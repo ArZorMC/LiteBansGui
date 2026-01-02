@@ -9,13 +9,20 @@
  * • Provides a back button to return to the category menu without cancelling session.
  *
  * ✅ Shift-click entry actions (permission gated)
- * • SHIFT + LEFT on ACTIVE entry   => Pardon (requires reason + confirm)
- * • SHIFT + RIGHT on REMOVED entry => Reinstate (requires reason + confirm)
- * • Reinstate re-applies only the remaining time (computed at removal time).
- * • Reinstate is refused if remaining time is expired (<= 0).
+ * • SHIFT + LEFT on ACTIVE/REINSTATED entry => Pardon (requires reason + confirm)
+ * • SHIFT + RIGHT on REVERTED entry         => Reinstate (requires reason + confirm)
  *
- * 🔧 Examples
- * • gui.openHistory(moderator, session)
+ * ✅ Flip rules (requested tweak)
+ * • After a punishment is reverted then reinstated, it can be reverted again.
+ * • You can keep flipping between REVERTED <-> REINSTATED while:
+ *     - it is still not expired (until > now) OR
+ *     - it is permanent (until == 0)
+ *
+ * ✅ Reinstate rules
+ * • Cannot reinstate if the punishment has already expired (until <= now).
+ * • Reinstating does NOT wipe "Removed By/Date/Reason" history.
+ * • Reinstating appends "Reissued By/Date/Reason" lines for audit trail.
+ * • Status becomes REINSTATED while active (not ACTIVE).
  *
  * ✨ Feedback (messages.yml keys)
  * • menu.history.title
@@ -23,14 +30,17 @@
  * • menu.history.entry.name
  * • menu.history.entry.lore
  * • menu.history.entry.lore-removed
+ * • menu.history.entry.reissued-by
+ * • menu.history.entry.reissued-date
+ * • menu.history.entry.reissued-reason
+ * • menu.history.entry.action-pardon
+ * • menu.history.entry.action-reinstate
  * • menu.history.filters.*.name / lore
  * • menu.history.prev.name / lore
  * • menu.history.next.name / lore
  * • menu.denied.click
  * • menu.back.name
  * • menu.back.lore
- *
- * • (NEW)
  * • menu.history.action.line
  * • menu.history.action.reinstate-expired
  * =============================================================================
@@ -65,6 +75,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
@@ -72,6 +83,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -79,6 +91,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // ======================
 // 🧩 Menu
@@ -94,6 +108,10 @@ public final class PunishmentHistoryMenu implements Listener {
     private static final String ENTRY_LORE_REMOVED_KEY = "menu.history.entry.lore-removed";
     private static final String ENTRY_ACTION_PARDON_KEY = "menu.history.entry.action-pardon";
     private static final String ENTRY_ACTION_REINSTATE_KEY = "menu.history.entry.action-reinstate";
+
+    private static final String ENTRY_REISSUED_BY_KEY = "menu.history.entry.reissued-by";
+    private static final String ENTRY_REISSUED_DATE_KEY = "menu.history.entry.reissued-date";
+    private static final String ENTRY_REISSUED_REASON_KEY = "menu.history.entry.reissued-reason";
 
     private static final String BACK_NAME_KEY = "menu.back.name";
     private static final String BACK_LORE_KEY = "menu.back.lore";
@@ -120,6 +138,9 @@ public final class PunishmentHistoryMenu implements Listener {
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                     .withZone(ZoneId.systemDefault());
+
+    private static final String REISSUE_MARKER = "||REISSUE||";
+    private static final Pattern HEX_COLOR = Pattern.compile("<#([0-9a-fA-F]{6})>");
 
     private static final String SQL_UNION = """
             SELECT u.id AS id,
@@ -235,33 +256,34 @@ public final class PunishmentHistoryMenu implements Listener {
             WHERE ID = ?
             """;
 
+    private static final String SQL_GET_REMOVED_REASON_BAN =
+            "SELECT REMOVED_BY_REASON AS r FROM PUBLIC.LITEBANS_BANS WHERE ID = ?";
+    private static final String SQL_GET_REMOVED_REASON_MUTE =
+            "SELECT REMOVED_BY_REASON AS r FROM PUBLIC.LITEBANS_MUTES WHERE ID = ?";
+    private static final String SQL_GET_REMOVED_REASON_WARN =
+            "SELECT REMOVED_BY_REASON AS r FROM PUBLIC.LITEBANS_WARNINGS WHERE ID = ?";
+
     private static final String SQL_REINSTATE_BAN = """
             UPDATE PUBLIC.LITEBANS_BANS
             SET ACTIVE = 1,
-                REMOVED_BY_NAME = '',
-                REMOVED_BY_REASON = '',
-                REMOVED_BY_DATE = NULL,
-                UNTIL = ?
+                UNTIL = ?,
+                REMOVED_BY_REASON = ?
             WHERE ID = ?
             """;
 
     private static final String SQL_REINSTATE_MUTE = """
             UPDATE PUBLIC.LITEBANS_MUTES
             SET ACTIVE = 1,
-                REMOVED_BY_NAME = '',
-                REMOVED_BY_REASON = '',
-                REMOVED_BY_DATE = NULL,
-                UNTIL = ?
+                UNTIL = ?,
+                REMOVED_BY_REASON = ?
             WHERE ID = ?
             """;
 
     private static final String SQL_REINSTATE_WARN = """
             UPDATE PUBLIC.LITEBANS_WARNINGS
             SET ACTIVE = 1,
-                REMOVED_BY_NAME = '',
-                REMOVED_BY_REASON = '',
-                REMOVED_BY_DATE = NULL,
-                UNTIL = ?
+                UNTIL = ?,
+                REMOVED_BY_REASON = ?
             WHERE ID = ?
             """;
 
@@ -341,9 +363,16 @@ public final class PunishmentHistoryMenu implements Listener {
             long untilMillis,
             boolean untilWasSeconds,
             long removedByDateMillis,
-            long remainingMillis, // remaining at time of removal (reinstate)
             String reason,
             String staffName
+    ) {
+    }
+
+    private record ReissueInfo(
+            String removedReason,
+            String reissuedBy,
+            long reissuedAtMillis,
+            String reissuedReason
     ) {
     }
 
@@ -680,11 +709,15 @@ public final class PunishmentHistoryMenu implements Listener {
             ph.put("staff", e.staff());
             ph.put("date", DATE_FMT.format(Instant.ofEpochMilli(e.timeMillis())));
 
-            boolean removed = isRemoved(e);
-            boolean activeNow = isActiveNow(e, removed, now);
+            boolean activeNow = isActiveNow(e, now);
+
+            ReissueInfo audit = parseReissueInfo(e.removedByReason());
+            boolean wasRemovedEver = wasRemovedEver(e) || !safe(audit.removedReason()).isBlank();
+            boolean removedNow = wasRemovedEver && !e.active();
 
             String status;
-            if (removed) status = "REVERTED";
+            if (removedNow) status = "REVERTED";
+            else if (activeNow && wasRemovedEver) status = "REINSTATED";
             else if (activeNow) status = "ACTIVE";
             else status = "INACTIVE";
 
@@ -700,15 +733,19 @@ public final class PunishmentHistoryMenu implements Listener {
             ph.put("remaining", remaining);
 
             ph.put("removed_by", safe(e.removedByName()).isBlank() ? "N/A" : e.removedByName());
-            ph.put("removed_reason", safe(e.removedByReason()).isBlank() ? "N/A" : e.removedByReason());
+            ph.put("removed_reason", safe(audit.removedReason()).isBlank() ? "N/A" : audit.removedReason());
             ph.put("removed_date", e.removedByDateMillis() <= 0L ? "N/A" : DATE_FMT.format(Instant.ofEpochMilli(e.removedByDateMillis())));
 
-            String loreKey = removed ? ENTRY_LORE_REMOVED_KEY : ENTRY_LORE_KEY;
+            String loreKey = wasRemovedEver ? ENTRY_LORE_REMOVED_KEY : ENTRY_LORE_KEY;
 
             String entryMat = entryMaterialForType(history, e.type());
             ItemStack item = items.icon(entryMat, ENTRY_NAME_KEY, loreKey, ph);
 
-            appendActionHintLine(moderator, item, removed, activeNow);
+            if (activeNow && wasRemovedEver && audit.reissuedAtMillis() > 0L) {
+                appendReissueLines(item, ph, audit);
+            }
+
+            appendActionHintLine(moderator, item, removedNow, activeNow, now, e);
 
             int slot = contentSlots.get(idx++);
             if (slot < 0 || slot >= inv.getSize()) continue;
@@ -718,17 +755,50 @@ public final class PunishmentHistoryMenu implements Listener {
         }
     }
 
-    private void appendActionHintLine(Player moderator, ItemStack item, boolean removed, boolean activeNow) {
+    private void appendReissueLines(ItemStack item, Map<String, String> basePh, ReissueInfo audit) {
+        if (item == null) return;
+
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) return;
+
+        List<Component> lore = meta.lore();
+        if (lore == null) lore = new ArrayList<>();
+        else lore = new ArrayList<>(lore);
+
+        Map<String, String> ph = new HashMap<>(basePh);
+
+        ph.put("reissued_by", safe(audit.reissuedBy()));
+        ph.put("reissued_date", DATE_FMT.format(Instant.ofEpochMilli(audit.reissuedAtMillis())));
+        ph.put("reissued_reason", safe(audit.reissuedReason()));
+
+        lore.add(messages.component(ENTRY_REISSUED_BY_KEY, ph));
+        lore.add(messages.component(ENTRY_REISSUED_DATE_KEY, ph));
+        lore.add(messages.component(ENTRY_REISSUED_REASON_KEY, ph));
+
+        meta.lore(lore);
+        item.setItemMeta(meta);
+    }
+
+    private void appendActionHintLine(
+            Player moderator,
+            ItemStack item,
+            boolean removedNow,
+            boolean activeNow,
+            long nowMillis,
+            Entry entry
+    ) {
         if (item == null) return;
 
         String key = null;
 
-        if (!removed && activeNow && perms.canPardonHistory(moderator)) {
+        if (activeNow && perms.canPardonHistory(moderator)) {
             key = ENTRY_ACTION_PARDON_KEY;
         }
 
-        if (removed && perms.canReinstateHistory(moderator)) {
-            key = ENTRY_ACTION_REINSTATE_KEY;
+        if (removedNow && perms.canReinstateHistory(moderator)) {
+            if (canReinstate(entry, nowMillis)) {
+                key = ENTRY_ACTION_REINSTATE_KEY;
+            }
         }
 
         if (key == null) return;
@@ -740,25 +810,105 @@ public final class PunishmentHistoryMenu implements Listener {
         if (lore == null) lore = new ArrayList<>();
         else lore = new ArrayList<>(lore);
 
+        // Always keep the spacer line immediately before the action hint line.
+        lore.add(Component.empty());
         lore.add(messages.component(key));
 
         meta.lore(lore);
         item.setItemMeta(meta);
     }
 
-    private static boolean isRemoved(Entry e) {
+    private static boolean wasRemovedEver(Entry e) {
         if (e == null) return false;
         if (e.removedByDateMillis() > 0L) return true;
         return !safe(e.removedByName()).isBlank();
     }
 
-    private static boolean isActiveNow(Entry e, boolean removed, long nowMillis) {
+    private static boolean isActiveNow(Entry e, long nowMillis) {
         if (e == null) return false;
-        if (removed) return false;
         if (!e.active()) return false;
 
         long until = e.untilMillis();
         return until <= 0L || until > nowMillis;
+    }
+
+    private static boolean canReinstate(Entry e, long nowMillis) {
+        if (e == null) return false;
+
+        if (e.untilMillis() <= 0L) return true;
+        return e.untilMillis() > nowMillis;
+    }
+
+    private static ReissueInfo parseReissueInfo(String rawRemovedReason) {
+        String raw = safe(rawRemovedReason);
+        if (raw.isBlank()) {
+            return new ReissueInfo("", "", 0L, "");
+        }
+
+        int firstIdx = raw.indexOf(REISSUE_MARKER);
+        String removedReason = (firstIdx >= 0 ? raw.substring(0, firstIdx) : raw).trim();
+
+        int lastIdx = raw.lastIndexOf(REISSUE_MARKER);
+        if (lastIdx < 0) {
+            return new ReissueInfo(removedReason, "", 0L, "");
+        }
+
+        String payload = raw.substring(lastIdx + REISSUE_MARKER.length()).trim();
+        String[] parts = payload.split(":", 3);
+        if (parts.length != 3) {
+            return new ReissueInfo(removedReason, "", 0L, "");
+        }
+
+        long at;
+        try {
+            at = Long.parseLong(parts[0]);
+        } catch (Exception ignored) {
+            at = 0L;
+        }
+
+        String by = decodeB64(parts[1]);
+        String reason = decodeB64(parts[2]);
+
+        return new ReissueInfo(removedReason, by, at, reason);
+    }
+
+    private static String keepReissueTrail(String existingRemovedReason) {
+        String raw = safe(existingRemovedReason);
+        int idx = raw.indexOf(REISSUE_MARKER);
+        if (idx < 0) return "";
+        return raw.substring(idx).trim();
+    }
+
+    private static String encodeB64(String s) {
+        String v = safe(s);
+        if (v.isEmpty()) return "";
+        return Base64.getEncoder().encodeToString(v.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String decodeB64(String b64) {
+        String v = safe(b64);
+        if (v.isEmpty()) return "";
+        try {
+            byte[] bytes = Base64.getDecoder().decode(v);
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String lastHexFromMessage(String key) {
+        String raw = safe(messages.raw(key));
+        String last = null;
+
+        Matcher m = HEX_COLOR.matcher(raw);
+        while (m.find()) last = m.group(1);
+
+        return last;
+    }
+
+    private static String wrapWithHex(String hex, String text) {
+        if (hex == null || hex.isBlank()) return text;
+        return "<#" + hex + ">" + text + "</#" + hex + ">";
     }
 
     private static String buildHistoryTypeDisplay(String baseType, long timeMillis, long untilMillis) {
@@ -910,10 +1060,8 @@ public final class PunishmentHistoryMenu implements Listener {
         UUID uuid = player.getUniqueId();
         if (!uuid.equals(holderUuid)) return;
 
-        // 🔒 Critical: cancel EVERYTHING while this GUI is open (including bottom inventory)
         event.setCancelled(true);
 
-        // Only process logic when clicking inside top inventory
         if (event.getClickedInventory() != top) return;
 
         int slot = event.getRawSlot();
@@ -1008,45 +1156,46 @@ public final class PunishmentHistoryMenu implements Listener {
         UUID uuid = player.getUniqueId();
 
         long now = System.currentTimeMillis();
-        boolean removed = isRemoved(entry);
-        boolean activeNow = isActiveNow(entry, removed, now);
+
+        ReissueInfo audit = parseReissueInfo(entry.removedByReason());
+        boolean wasRemovedEver = wasRemovedEver(entry) || !safe(audit.removedReason()).isBlank();
+        boolean removedNow = wasRemovedEver && !entry.active();
+
+        boolean activeNow = isActiveNow(entry, now);
 
         ActionType action;
         if (clickType == ClickType.SHIFT_LEFT) {
             if (!activeNow) return;
+
             if (!perms.canPardonHistory(player)) {
                 perms.playDenyClick(player);
                 player.sendMessage(messages.component(DENIED_CLICK_KEY));
                 return;
             }
             action = ActionType.PARDON;
+
         } else if (clickType == ClickType.SHIFT_RIGHT) {
-            if (!removed) return;
+            if (!removedNow) return;
+
             if (!perms.canReinstateHistory(player)) {
                 perms.playDenyClick(player);
                 player.sendMessage(messages.component(DENIED_CLICK_KEY));
                 return;
             }
+
+            if (!canReinstate(entry, now)) {
+                player.sendMessage(messages.component(
+                        REINSTATE_EXPIRED_KEY,
+                        PlaceholderUtil.merge(
+                                PlaceholderUtil.forSession(session, uuid, player.getName()),
+                                Map.of("id", Long.toString(entry.id()))
+                        )
+                ));
+                return;
+            }
+
             action = ActionType.REINSTATE;
         } else {
-            return;
-        }
-
-        final long remainingAtRemoval;
-        if (action == ActionType.REINSTATE && entry.untilMillis() > 0L && entry.removedByDateMillis() > 0L) {
-            remainingAtRemoval = Math.max(0L, entry.untilMillis() - entry.removedByDateMillis());
-        } else {
-            remainingAtRemoval = 0L;
-        }
-
-        if (action == ActionType.REINSTATE && entry.untilMillis() > 0L && remainingAtRemoval == 0L) {
-            player.sendMessage(messages.component(
-                    REINSTATE_EXPIRED_KEY,
-                    PlaceholderUtil.merge(
-                            PlaceholderUtil.forSession(session, uuid, player.getName()),
-                            Map.of("id", Long.toString(entry.id()))
-                    )
-            ));
             return;
         }
 
@@ -1074,7 +1223,6 @@ public final class PunishmentHistoryMenu implements Listener {
                             entry.untilMillis(),
                             entry.untilWasSeconds(),
                             entry.removedByDateMillis(),
-                            remainingAtRemoval,
                             reason,
                             player.getName()
                     );
@@ -1109,6 +1257,21 @@ public final class PunishmentHistoryMenu implements Listener {
         String typeDisplay = buildHistoryTypeDisplay(pending.baseType(), pending.timeMillis(), pending.untilMillis());
         String durationDisplay = buildHistoryDurationDisplay(pending.baseType(), pending.timeMillis(), pending.untilMillis());
 
+        String tag = null;
+        String tagHex = null;
+
+        if (pending.actionType() == ActionType.PARDON) {
+            tag = "(Pardon)";
+            tagHex = lastHexFromMessage(ENTRY_ACTION_PARDON_KEY);
+        } else if (pending.actionType() == ActionType.REINSTATE) {
+            tag = "(Reissue)"; // requested label; uses the Reinstate hint color
+            tagHex = lastHexFromMessage(ENTRY_ACTION_REINSTATE_KEY);
+        }
+
+        if (tag != null) {
+            typeDisplay = typeDisplay + " " + wrapWithHex(tagHex, tag);
+        }
+
         ph.put("type", typeDisplay);
         ph.put("duration", durationDisplay);
         ph.put("reason", pending.reason() == null ? "" : pending.reason());
@@ -1120,14 +1283,6 @@ public final class PunishmentHistoryMenu implements Listener {
         ph.put("history_action", actionWord);
         ph.put("history_id", Long.toString(pending.id()));
         ph.put("history_action_line", messages.raw(ACTION_LINE_KEY));
-
-        if (pending.untilMillis() <= 0L) {
-            ph.put("history_remaining", "Permanent");
-        } else if (pending.actionType() == ActionType.REINSTATE) {
-            ph.put("history_remaining", formatCompactDuration(Math.max(0L, pending.remainingMillis())));
-        } else {
-            ph.put("history_remaining", "N/A");
-        }
 
         ConfigModels.LayoutIcon confirm = snap.layout().confirmConfirm();
         ConfigModels.LayoutIcon cancel = snap.layout().confirmCancel();
@@ -1200,15 +1355,20 @@ public final class PunishmentHistoryMenu implements Listener {
                             Map.of("reason", "history_action_failed")
                     ));
                 } else {
+                    String resultWord = (pending.actionType() == ActionType.PARDON) ? "reverted" : "reinstated";
+
                     player.sendMessage(messages.component(
                             "punish.success",
                             PlaceholderUtil.merge(
-                                    PlaceholderUtil.forSession(
-                                            PunishSession.start(pending.targetUuid(), pending.targetName()),
-                                            uuid,
-                                            player.getName()
+                                    PlaceholderUtil.merge(
+                                            PlaceholderUtil.forSession(
+                                                    PunishSession.start(pending.targetUuid(), pending.targetName()),
+                                                    uuid,
+                                                    player.getName()
+                                            ),
+                                            Map.of("reason", pending.reason() == null ? "" : pending.reason())
                                     ),
-                                    Map.of("reason", pending.reason() == null ? "" : pending.reason())
+                                    Map.of("history_result", resultWord)
                             )
                     ));
                 }
@@ -1218,21 +1378,51 @@ public final class PunishmentHistoryMenu implements Listener {
         });
     }
 
+    // ======================
+    // 🧩 DB mutations
+    // ======================
+
     private boolean applyPardon(PendingAction pending) {
         String type = pending.baseType();
         if (type.isEmpty()) return false;
 
-        String sql = switch (type) {
+        String sqlUpdate = switch (type) {
             case "BAN" -> SQL_PARDON_BAN;
             case "MUTE" -> SQL_PARDON_MUTE;
             case "WARN" -> SQL_PARDON_WARN;
-            default -> null;
+            default -> throw new IllegalStateException("Unexpected baseType: " + type);
         };
-        if (sql == null) return false;
 
-        try (PreparedStatement ps = Database.get().prepareStatement(sql)) {
+        String sqlGet = switch (type) {
+            case "BAN" -> SQL_GET_REMOVED_REASON_BAN;
+            case "MUTE" -> SQL_GET_REMOVED_REASON_MUTE;
+            case "WARN" -> SQL_GET_REMOVED_REASON_WARN;
+            default -> throw new IllegalStateException("Unexpected baseType: " + type);
+        };
+
+        String existingRemovedReason = "";
+        try (PreparedStatement ps = Database.get().prepareStatement(sqlGet)) {
+            ps.setLong(1, pending.id());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) existingRemovedReason = safe(rs.getString("r"));
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[PunishmentHistoryMenu] Pardon read failed for ID " + pending.id() + ": " + ex.getMessage());
+            return false;
+        }
+
+        String newRemovedReason = pending.reason() == null ? "" : pending.reason();
+        String trail = keepReissueTrail(existingRemovedReason);
+
+        String combined = safe(newRemovedReason).trim();
+        if (!trail.isBlank()) {
+            if (!combined.isBlank()) combined += "\n";
+            combined += trail;
+        }
+
+        try (PreparedStatement ps = Database.get().prepareStatement(sqlUpdate)) {
             ps.setString(1, safe(pending.staffName()));
-            ps.setString(2, pending.reason() == null ? "" : pending.reason());
+            ps.setString(2, combined);
             ps.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
             ps.setLong(4, pending.id());
 
@@ -1247,32 +1437,52 @@ public final class PunishmentHistoryMenu implements Listener {
         String type = pending.baseType();
         if (type.isEmpty()) return false;
 
-        String sql = switch (type) {
+        String sqlGet = switch (type) {
+            case "BAN" -> SQL_GET_REMOVED_REASON_BAN;
+            case "MUTE" -> SQL_GET_REMOVED_REASON_MUTE;
+            case "WARN" -> SQL_GET_REMOVED_REASON_WARN;
+            default -> throw new IllegalStateException("Unexpected baseType: " + type);
+        };
+
+        String sqlUpdate = switch (type) {
             case "BAN" -> SQL_REINSTATE_BAN;
             case "MUTE" -> SQL_REINSTATE_MUTE;
             case "WARN" -> SQL_REINSTATE_WARN;
-            default -> null;
+            default -> throw new IllegalStateException("Unexpected baseType: " + type);
         };
-        if (sql == null) return false;
 
         long now = System.currentTimeMillis();
 
-        long newUntilMillis;
-        if (pending.untilMillis() <= 0L) {
-            newUntilMillis = 0L;
-        } else {
-            long remaining = Math.max(0L, pending.remainingMillis());
-            if (remaining == 0L) return false;
-            newUntilMillis = now + remaining;
+        if (pending.untilMillis() > 0L && pending.untilMillis() <= now) {
+            return false;
         }
 
+        long newUntilMillis = Math.max(pending.untilMillis(), 0L);
+
         long newUntilRaw = pending.untilWasSeconds()
-                ? (newUntilMillis <= 0L ? 0L : (newUntilMillis / 1000L))
+                ? (newUntilMillis == 0L ? 0L : (newUntilMillis / 1000L))
                 : newUntilMillis;
 
-        try (PreparedStatement ps = Database.get().prepareStatement(sql)) {
+        String existingRemovedReason = "";
+        try (PreparedStatement ps = Database.get().prepareStatement(sqlGet)) {
+            ps.setLong(1, pending.id());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) existingRemovedReason = safe(rs.getString("r"));
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[PunishmentHistoryMenu] Reinstate read failed for ID " + pending.id() + ": " + ex.getMessage());
+            return false;
+        }
+
+        String payload = now + ":" + encodeB64(pending.staffName()) + ":" + encodeB64(pending.reason());
+        String appended = safe(existingRemovedReason);
+        if (!appended.isBlank() && !appended.endsWith("\n")) appended += "\n";
+        appended += REISSUE_MARKER + payload;
+
+        try (PreparedStatement ps = Database.get().prepareStatement(sqlUpdate)) {
             ps.setLong(1, newUntilRaw);
-            ps.setLong(2, pending.id());
+            ps.setString(2, appended);
+            ps.setLong(3, pending.id());
             return ps.executeUpdate() > 0;
         } catch (Exception ex) {
             plugin.getLogger().warning("[PunishmentHistoryMenu] Reinstate failed for ID " + pending.id() + ": " + ex.getMessage());

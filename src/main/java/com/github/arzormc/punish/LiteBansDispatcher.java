@@ -80,8 +80,6 @@ public final class LiteBansDispatcher {
 
         String cmd = buildCommand(level, session.silent(), target, reason);
 
-        // ✅ Use the moderator as sender so LiteBans records correct staff.
-        // Fallback to console only if moderator is not available.
         CommandSender sender = pickSender(moderator);
 
         boolean ok = Bukkit.dispatchCommand(sender, cmd);

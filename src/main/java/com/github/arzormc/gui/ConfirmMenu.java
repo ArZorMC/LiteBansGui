@@ -271,10 +271,13 @@ public final class ConfirmMenu implements Listener {
                 sessions.complete(player.getUniqueId());
 
                 player.closeInventory();
-                player.sendMessage(messages.component(
-                        MSG_PUNISH_SUCCESS,
-                        PlaceholderUtil.forSession(session, session.targetUuid(), player.getName())
-                ));
+
+                Map<String, String> ph = PlaceholderUtil.merge(
+                        PlaceholderUtil.forSession(session, moderatorUuid, player.getName()),
+                        Map.of("history_result", "applied")
+                );
+
+                player.sendMessage(messages.component(MSG_PUNISH_SUCCESS, ph));
             }
         }
     }

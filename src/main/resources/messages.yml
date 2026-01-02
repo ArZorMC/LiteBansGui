@@ -141,7 +141,7 @@ reason:
 
 # === ⚙️ Dispatch ===
 punish:
-  success: "<#34D399>Punishment applied to</#34D399> <#7DD3FC><target></#7DD3FC><#34D399>.</#34D399>"
+  success: "<#34D399>Punishment <history_result> for</#34D399> <#7DD3FC><target></#7DD3FC><#34D399>.</#34D399>"
 
   dispatch:
     missing-plugin: "<#FB7185>LiteBans is not installed or not enabled.</#FB7185>"
@@ -222,7 +222,6 @@ menu:
         - "<#94A3B8><italic:false><#64748B>Date</#64748B> <#475569>›</#475569> <#94A3B8><date></#94A3B8></italic></#94A3B8>"
         - "<#94A3B8><italic:false><#64748B>Status</#64748B> <#475569>›</#475569> <#7DD3FC><status></#7DD3FC></italic></#94A3B8>"
         - "<#94A3B8><italic:false><#64748B>Remaining</#64748B> <#475569>›</#475569> <#7DD3FC><remaining></#7DD3FC></italic></#94A3B8>"
-        - ""
 
       lore-removed:
         - "<#94A3B8><italic:false><#64748B>Staff</#64748B> <#475569>›</#475569> <#7DD3FC><staff></#7DD3FC></italic></#94A3B8>"
@@ -232,7 +231,10 @@ menu:
         - "<#94A3B8><italic:false><#64748B>Removed By</#64748B> <#475569>›</#475569> <#7DD3FC><removed_by></#7DD3FC></italic></#94A3B8>"
         - "<#94A3B8><italic:false><#64748B>Removed Date</#64748B> <#475569>›</#475569> <#94A3B8><removed_date></#94A3B8></italic></#94A3B8>"
         - "<#94A3B8><italic:false><#64748B>Removed Reason</#64748B> <#475569>›</#475569> <#94A3B8><removed_reason></#94A3B8></italic></#94A3B8>"
-        - ""
+
+      reissued-by: "<#94A3B8><italic:false><#64748B>Reissued By</#64748B> <#475569>›</#475569> <#7DD3FC><reissued_by></#7DD3FC></italic></#94A3B8>"
+      reissued-date: "<#94A3B8><italic:false><#64748B>Reissued Date</#64748B> <#475569>›</#475569> <#94A3B8><reissued_date></#94A3B8></italic></#94A3B8>"
+      reissued-reason: "<#94A3B8><italic:false><#64748B>Reissued Reason</#64748B> <#475569>›</#475569> <#94A3B8><reissued_reason></#94A3B8></italic></#94A3B8>"
 
       action-pardon: "<italic:false><#A78BFA>✦</#A78BFA> <#A78BFA><bold>Hint</bold></#A78BFA> <#475569>•</#475569> <#E2E8F0>[Shift + Left-Click]</#E2E8F0> <#475569>→</#475569> <#34D399><bold>Pardon</bold></#34D399></italic>"
       action-reinstate: "<italic:false><#A78BFA>✦</#A78BFA> <#A78BFA><bold>Hint</bold></#A78BFA> <#475569>•</#475569> <#E2E8F0>[Shift + Right-Click]</#E2E8F0> <#475569>→</#475569> <#FB7185><bold>Reinstate</bold></#FB7185></italic>"
