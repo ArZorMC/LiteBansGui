@@ -1,0 +1,319 @@
+name: LiteBansGUI
+version: '1.0.0'
+main: com.github.arzormc.LiteBansGuiPlugin
+api-version: '1.21'
+authors: [ArZorMC]
+softdepend: [LiteBans]
+
+commands:
+  punish:
+    description: Open the guided LiteBans punishment GUI for a target player.
+    usage: /punish <player>
+    permission: litebansgui.use
+    permission-message: "" # handled via messages.yml
+
+  punishreload:
+    description: Reload LiteBansGUI config.yml, layout.yml, and messages.yml.
+    usage: /punishreload
+    permission: litebansgui.reload
+    permission-message: "" # handled via messages.yml
+    aliases: [lbgreload, lbguireload]
+
+  punisheditor:
+    description: Open the LiteBansGUI in-game layout editor.
+    usage: /punisheditor
+    permission: litebansgui.editor
+    permission-message: "" # handled via messages.yml
+    aliases: [lbgeditor, lbguieditor]
+
+permissions:
+  # ----------------------------------------------------------
+  # Core permissions (used by PermissionService)
+  # ----------------------------------------------------------
+  litebansgui.use:
+    description: Allows using /punish and the LiteBansGUI punishment flow.
+    default: op
+
+  litebansgui.reload:
+    description: Allows using /punishreload.
+    default: op
+
+  litebansgui.editor:
+    description: Allows using /punisheditor and in-game layout editing.
+    default: op
+  # ----------------------------------------------------------
+  # Punishment history permissions
+  #
+  # Pattern expected by PermissionService:
+  #   litebansgui.history
+  #   litebansgui.history.filter.<filter>
+  #
+  # Filters:
+  #   all | bans | mutes | warns | kicks
+  # ----------------------------------------------------------
+
+  litebansgui.history:
+    description: Allows viewing punishment history for a target player.
+    default: op
+
+  litebansgui.history.filter.*:
+    description: Allows access to all punishment history filters.
+    default: op
+
+  # Explicit filter nodes for discoverability
+  litebansgui.history.filter.all:
+    description: Allows viewing all punishment history entries.
+    default: op
+
+  litebansgui.history.filter.bans:
+    description: Allows viewing ban and tempban history entries.
+    default: op
+
+  litebansgui.history.filter.mutes:
+    description: Allows viewing mute and tempmute history entries.
+    default: op
+
+  litebansgui.history.filter.warns:
+    description: Allows viewing warn history entries.
+    default: op
+
+  litebansgui.history.filter.kicks:
+    description: Allows viewing kick history entries.
+    default: op
+
+  # ----------------------------------------------------------
+  # History entry action permissions (shift-click actions)
+  # ----------------------------------------------------------
+  litebansgui.history.action.*:
+    description: Allows all shift-click history entry actions.
+    default: op
+
+  litebansgui.history.pardon:
+    description: Allows shift-left-clicking an active history entry to issue a pardon (requires confirm + reason).
+    default: op
+
+  litebansgui.history.reinstate:
+    description: Allows shift-right-clicking a pardoned history entry to reinstate it (requires confirm + reason).
+    default: op
+
+  # ----------------------------------------------------------
+  # Category permissions
+  #
+  # Pattern expected by PermissionService:
+  #   litebansgui.category.<categoryId>
+  #
+  # Level permissions (optional, only if you want granular control):
+  #   litebansgui.category.<categoryId>.level.<levelId>
+  #
+  # NOTE: Bukkit permission nodes are static in plugin.yml.
+  # We declare a wildcard parent with children that match your current categories.
+  # ----------------------------------------------------------
+
+  litebansgui.category.*:
+    description: Allows access to all punishment categories (wildcard parent).
+    default: op
+
+  # ----------------------------------------------------------
+  # Category -> Level wildcard parent (covers all levels on all categories)
+  # This is useful if you want "category visible/clickable" but keep level gating.
+  # ----------------------------------------------------------
+  litebansgui.category.*.level.*:
+    description: Allows access to all severity levels for all categories (wildcard parent).
+    default: op
+
+  # ----------------------------------------------------------
+  # OPTIONAL: Define explicit children for current config.yml categories
+  # This makes permission plugins (LuckPerms, etc.) show nice nodes.
+  # ----------------------------------------------------------
+  litebansgui.category:
+    description: Category permission group (explicit children for discoverability).
+    default: false
+    children:
+      litebansgui.category.griefing: true
+      litebansgui.category.bypassing_chat_filter_intentional: true
+      litebansgui.category.discrimination: true
+      litebansgui.category.spamming: true
+      litebansgui.category.releasing_personal_info_self: true
+      litebansgui.category.instigating_drama: true
+      litebansgui.category.server_advertisement: true
+      litebansgui.category.swearing: true
+      litebansgui.category.community_disruption: true
+      litebansgui.category.hacking: true
+      litebansgui.category.harassment: true
+
+      litebansgui.category.mute_evasion: true
+      litebansgui.category.ban_evasion: true
+      litebansgui.category.event_disruption: true
+      litebansgui.category.ddos_dox_death_threats: true
+      litebansgui.category.false_information: true
+      litebansgui.category.trolling: true
+
+      litebansgui.category.extreme_discrimination: true
+      litebansgui.category.chargeback_fraud_charges: true
+      litebansgui.category.staff_impersonation: true
+      litebansgui.category.predatory_behavior_explicit_content: true
+      litebansgui.category.sending_malicious_links: true
+      litebansgui.category.inappropriate_name: true
+      litebansgui.category.inappropriate_skin: true
+      litebansgui.category.abusing_support: true
+
+      litebansgui.category.encouraging_bad_behavior: true
+      litebansgui.category.inappropriate_behavior: true
+      litebansgui.category.death_wishes_self_harm_encouragement: true
+      litebansgui.category.disrespecting_others: true
+      litebansgui.category.other: true
+
+  # ----------------------------------------------------------
+  # OPTIONAL: Level nodes for discoverability (1..5) per category.
+  # (These are "nice to have" for admins; your code already supports wildcard.)
+  # ----------------------------------------------------------
+  litebansgui.levels:
+    description: Category severity level permission group (explicit children).
+    default: false
+    children:
+      # griefing
+      litebansgui.category.griefing.level.1: true
+      litebansgui.category.griefing.level.2: true
+      litebansgui.category.griefing.level.3: true
+      litebansgui.category.griefing.level.4: true
+      litebansgui.category.griefing.level.5: true
+
+      # bypassing_chat_filter_intentional
+      litebansgui.category.bypassing_chat_filter_intentional.level.1: true
+      litebansgui.category.bypassing_chat_filter_intentional.level.2: true
+      litebansgui.category.bypassing_chat_filter_intentional.level.3: true
+      litebansgui.category.bypassing_chat_filter_intentional.level.4: true
+      litebansgui.category.bypassing_chat_filter_intentional.level.5: true
+
+      # discrimination (2 levels)
+      litebansgui.category.discrimination.level.1: true
+      litebansgui.category.discrimination.level.2: true
+
+      # spamming (4 levels)
+      litebansgui.category.spamming.level.1: true
+      litebansgui.category.spamming.level.2: true
+      litebansgui.category.spamming.level.3: true
+      litebansgui.category.spamming.level.4: true
+
+      # releasing_personal_info_self (2 levels)
+      litebansgui.category.releasing_personal_info_self.level.1: true
+      litebansgui.category.releasing_personal_info_self.level.2: true
+
+      # instigating_drama (4 levels)
+      litebansgui.category.instigating_drama.level.1: true
+      litebansgui.category.instigating_drama.level.2: true
+      litebansgui.category.instigating_drama.level.3: true
+      litebansgui.category.instigating_drama.level.4: true
+
+      # server_advertisement (2 levels)
+      litebansgui.category.server_advertisement.level.1: true
+      litebansgui.category.server_advertisement.level.2: true
+
+      # swearing (3 levels)
+      litebansgui.category.swearing.level.1: true
+      litebansgui.category.swearing.level.2: true
+      litebansgui.category.swearing.level.3: true
+
+      # community_disruption (5 levels)
+      litebansgui.category.community_disruption.level.1: true
+      litebansgui.category.community_disruption.level.2: true
+      litebansgui.category.community_disruption.level.3: true
+      litebansgui.category.community_disruption.level.4: true
+      litebansgui.category.community_disruption.level.5: true
+
+      # hacking (2 levels)
+      litebansgui.category.hacking.level.1: true
+      litebansgui.category.hacking.level.2: true
+
+      # harassment (5 levels)
+      litebansgui.category.harassment.level.1: true
+      litebansgui.category.harassment.level.2: true
+      litebansgui.category.harassment.level.3: true
+      litebansgui.category.harassment.level.4: true
+      litebansgui.category.harassment.level.5: true
+
+      # mute_evasion (3 levels)
+      litebansgui.category.mute_evasion.level.1: true
+      litebansgui.category.mute_evasion.level.2: true
+      litebansgui.category.mute_evasion.level.3: true
+
+      # ban_evasion (1 level)
+      litebansgui.category.ban_evasion.level.1: true
+
+      # event_disruption (3 levels)
+      litebansgui.category.event_disruption.level.1: true
+      litebansgui.category.event_disruption.level.2: true
+      litebansgui.category.event_disruption.level.3: true
+
+      # ddos_dox_death_threats (1 level)
+      litebansgui.category.ddos_dox_death_threats.level.1: true
+
+      # false_information (3 levels)
+      litebansgui.category.false_information.level.1: true
+      litebansgui.category.false_information.level.2: true
+      litebansgui.category.false_information.level.3: true
+
+      # trolling (4 levels)
+      litebansgui.category.trolling.level.1: true
+      litebansgui.category.trolling.level.2: true
+      litebansgui.category.trolling.level.3: true
+      litebansgui.category.trolling.level.4: true
+
+      # extreme_discrimination (2 levels)
+      litebansgui.category.extreme_discrimination.level.1: true
+      litebansgui.category.extreme_discrimination.level.2: true
+
+      # chargeback_fraud_charges (1 level)
+      litebansgui.category.chargeback_fraud_charges.level.1: true
+
+      # staff_impersonation (2 levels)
+      litebansgui.category.staff_impersonation.level.1: true
+      litebansgui.category.staff_impersonation.level.2: true
+
+      # predatory_behavior_explicit_content (1 level)
+      litebansgui.category.predatory_behavior_explicit_content.level.1: true
+
+      # sending_malicious_links (2 levels)
+      litebansgui.category.sending_malicious_links.level.1: true
+      litebansgui.category.sending_malicious_links.level.2: true
+
+      # inappropriate_name (2 levels)
+      litebansgui.category.inappropriate_name.level.1: true
+      litebansgui.category.inappropriate_name.level.2: true
+
+      # inappropriate_skin (2 levels)
+      litebansgui.category.inappropriate_skin.level.1: true
+      litebansgui.category.inappropriate_skin.level.2: true
+
+      # abusing_support (4 levels)
+      litebansgui.category.abusing_support.level.1: true
+      litebansgui.category.abusing_support.level.2: true
+      litebansgui.category.abusing_support.level.3: true
+      litebansgui.category.abusing_support.level.4: true
+
+      # encouraging_bad_behavior (3 levels)
+      litebansgui.category.encouraging_bad_behavior.level.1: true
+      litebansgui.category.encouraging_bad_behavior.level.2: true
+      litebansgui.category.encouraging_bad_behavior.level.3: true
+
+      # inappropriate_behavior (4 levels)
+      litebansgui.category.inappropriate_behavior.level.1: true
+      litebansgui.category.inappropriate_behavior.level.2: true
+      litebansgui.category.inappropriate_behavior.level.3: true
+      litebansgui.category.inappropriate_behavior.level.4: true
+
+      # death_wishes_self_harm_encouragement (2 levels)
+      litebansgui.category.death_wishes_self_harm_encouragement.level.1: true
+      litebansgui.category.death_wishes_self_harm_encouragement.level.2: true
+
+      # disrespecting_others (3 levels)
+      litebansgui.category.disrespecting_others.level.1: true
+      litebansgui.category.disrespecting_others.level.2: true
+      litebansgui.category.disrespecting_others.level.3: true
+
+      # other (5 levels)
+      litebansgui.category.other.level.1: true
+      litebansgui.category.other.level.2: true
+      litebansgui.category.other.level.3: true
+      litebansgui.category.other.level.4: true
+      litebansgui.category.other.level.5: true
