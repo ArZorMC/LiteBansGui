@@ -57,12 +57,21 @@ permissions:
 # Custom punishment categories grouped by rarity (visual only).
 #
 # Severity format:
-#   • With duration → "ID=TYPE:DURATION"   (TEMPMUTE, TEMPBAN, BAN)
-#   • No duration   → "ID=TYPE"            (WARN, KICK)
+#   • With duration → "ID=TYPE:DURATION"
+#       - TEMPMUTE, TEMPBAN, BAN
+#   • No duration   → "ID=TYPE"
+#       - WARN, KICK
 #
-# Duration examples: PERM, 30m, 1h, 1d, 7d, 30d
+# Duration tokens:
+#   • Time-based → 30m, 1h, 1d, 7d, 30d, etc.
+#   • PERM / PERMANENT
 #
-# ℹ️ Categories with only ONE level skip the severity menu
+# Special behavior:
+#   • TEMPMUTE:PERM   → permanent mute   (/mute)
+#   • BAN:PERM        → permanent ban    (/ban)
+#   • Blank duration  → treated as PERM
+#
+# ℹ️ Categories with ONLY ONE level skip the severity menu
 #    and proceed directly to reason input.
 categories:
 
@@ -97,7 +106,7 @@ categories:
 
   swearing:
     rarity: COMMON
-    levels: ["1=WARN", "2=TEMPMUTE:1d", "3=TEMPMUTE:7d"]
+    levels: ["1=WARN", "2=TEMPMUTE:1d", "3=TEMPMUTE:7d", "4=TEMPMUTE:PERM"]
 
   community_disruption:
     rarity: COMMON
@@ -192,3 +201,255 @@ categories:
   other:
     rarity: UNCATEGORIZED
     levels: ["1=WARN", "2=KICK", "3=TEMPMUTE:1d", "4=TEMPBAN:7d", "5=BAN:PERM"]
+
+
+# ╔═══🎭 Loadouts (Staff Role Kits)═════════════════════════════════════╗
+# Admin-defined permission GROUPINGS for staff roles.
+# These do NOT introduce new authority — they bundle existing permissions
+# so you don’t have to grant dozens of nodes manually.
+#
+# What this is
+# • Staff are granted ONE permission:
+#     litebansgui.loadout.<loadoutId>
+#   Example:
+#     litebansgui.loadout.mod
+#
+#
+# How it works (dynamic)
+# • The plugin detects permissions starting with:
+#     litebansgui.loadout.
+# • The suffix becomes the loadoutId (example: "mod").
+#
+# 🚨 CRITICAL WARNING — READ THIS CAREFULLY 🚨
+# Loadouts are tightly coupled to your category + severity mapping.
+#
+# • Permission to issue punishments is controlled by:
+#     litebansgui.category.<categoryId>.level.<levelId>
+#
+# • What each level DOES is defined here in this config under:
+#     categories.<categoryId>.levels
+#
+# ✅ If you change ANY category levels (add/remove/reorder/repurpose),
+#    you MUST update the loadouts below to match.
+#
+# ⚠️ If you do NOT, staff may gain unintended access
+#    (example: a "mod" level becomes BAN:PERM after edits).
+#
+# ❗ Best practice:
+#   After editing categories/levels, review EVERY loadout below
+#   and verify no role gained BAN:PERM or other unintended actions.
+#
+# Role intent (default config mapping)
+# • jrmod: view-only (NO level permissions)
+# • mod: temp actions only (WARN / KICK / TEMPMUTE / TEMPBAN)
+# • seniormod: adds permanent actions (BAN:PERM, TEMPMUTE:PERM)
+# • administrator: adds history entry actions (pardon / reinstate)
+
+
+loadouts:
+
+  # ----------------------------------------------------------
+  # 🎟️ Junior Mod — View Only
+  # ----------------------------------------------------------
+  jrmod:
+    permissions:
+      - "litebansgui.use"
+      - "litebansgui.history"
+      - "litebansgui.history.filter.*"
+      - "litebansgui.category.*"
+      # 🚫 No litebansgui.category.<id>.level.<n> nodes on purpose.
+
+  # ----------------------------------------------------------
+  # 🎬 Mod — Temporary Actions Only
+  # (All non-perm-ban levels, per category mapping)
+  # ----------------------------------------------------------
+  mod:
+    includes: ["jrmod"]
+    permissions:
+
+      # ╔═══🟥 Most Common══════════════════════════════════════╗
+      # griefing: 1=WARN, 2=KICK, 3=TEMPBAN, 4=TEMPBAN, 5=BAN:PERM
+      - "litebansgui.category.griefing.level.1"
+      - "litebansgui.category.griefing.level.2"
+      - "litebansgui.category.griefing.level.3"
+      - "litebansgui.category.griefing.level.4"
+
+      # bypassing_chat_filter_intentional: 1=WARN, 2=TEMPMUTE, 3=TEMPMUTE, 4=TEMPBAN, 5=BAN:PERM
+      - "litebansgui.category.bypassing_chat_filter_intentional.level.1"
+      - "litebansgui.category.bypassing_chat_filter_intentional.level.2"
+      - "litebansgui.category.bypassing_chat_filter_intentional.level.3"
+      - "litebansgui.category.bypassing_chat_filter_intentional.level.4"
+
+      # discrimination: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.discrimination.level.1"
+
+      # spamming: 1=WARN, 2=TEMPMUTE, 3=TEMPMUTE, 4=TEMPBAN
+      - "litebansgui.category.spamming.level.1"
+      - "litebansgui.category.spamming.level.2"
+      - "litebansgui.category.spamming.level.3"
+      - "litebansgui.category.spamming.level.4"
+
+      # releasing_personal_info_self: 1=WARN, 2=TEMPBAN, 3=TEMPBAN, 4=TEMPBAN
+      - "litebansgui.category.releasing_personal_info_self.level.1"
+      - "litebansgui.category.releasing_personal_info_self.level.2"
+      - "litebansgui.category.releasing_personal_info_self.level.3"
+      - "litebansgui.category.releasing_personal_info_self.level.4"
+
+      # instigating_drama: 1=WARN, 2=TEMPMUTE, 3=TEMPMUTE, 4=TEMPBAN
+      - "litebansgui.category.instigating_drama.level.1"
+      - "litebansgui.category.instigating_drama.level.2"
+      - "litebansgui.category.instigating_drama.level.3"
+      - "litebansgui.category.instigating_drama.level.4"
+
+      # server_advertisement: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.server_advertisement.level.1"
+
+      # swearing: 1=WARN, 2=TEMPMUTE, 3=TEMPMUTE
+      - "litebansgui.category.swearing.level.1"
+      - "litebansgui.category.swearing.level.2"
+      - "litebansgui.category.swearing.level.3"
+
+      # community_disruption: 1=WARN, 2=KICK, 3=TEMPMUTE, 4=TEMPBAN, 5=BAN:PERM
+      - "litebansgui.category.community_disruption.level.1"
+      - "litebansgui.category.community_disruption.level.2"
+      - "litebansgui.category.community_disruption.level.3"
+      - "litebansgui.category.community_disruption.level.4"
+
+      # hacking: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.hacking.level.1"
+
+      # harassment: 1=WARN, 2=TEMPMUTE, 3=TEMPMUTE, 4=TEMPBAN, 5=BAN:PERM
+      - "litebansgui.category.harassment.level.1"
+      - "litebansgui.category.harassment.level.2"
+      - "litebansgui.category.harassment.level.3"
+      - "litebansgui.category.harassment.level.4"
+
+
+      # ╔═══🟧 Uncommon════════════════════════════════════════╗
+      # mute_evasion: 1=TEMPMUTE, 2=TEMPBAN, 3=BAN:PERM
+      - "litebansgui.category.mute_evasion.level.1"
+      - "litebansgui.category.mute_evasion.level.2"
+
+      # ban_evasion: 1=BAN:PERM
+      # (no mod access)
+
+      # event_disruption: 1=KICK, 2=TEMPBAN, 3=BAN:PERM
+      - "litebansgui.category.event_disruption.level.1"
+      - "litebansgui.category.event_disruption.level.2"
+
+      # ddos_dox_death_threats: 1=BAN:PERM
+      # (no mod access)
+
+      # false_information: 1=WARN, 2=TEMPMUTE, 3=TEMPBAN
+      - "litebansgui.category.false_information.level.1"
+      - "litebansgui.category.false_information.level.2"
+      - "litebansgui.category.false_information.level.3"
+
+      # trolling: 1=WARN, 2=KICK, 3=TEMPMUTE, 4=TEMPBAN
+      - "litebansgui.category.trolling.level.1"
+      - "litebansgui.category.trolling.level.2"
+      - "litebansgui.category.trolling.level.3"
+      - "litebansgui.category.trolling.level.4"
+
+
+      # ╔═══🟨 Rare════════════════════════════════════════════╗
+      # extreme_discrimination: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.extreme_discrimination.level.1"
+
+      # chargeback_fraud_charges: 1=BAN:PERM
+      # (no mod access)
+
+      # staff_impersonation: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.staff_impersonation.level.1"
+
+      # predatory_behavior_explicit_content: 1=BAN:PERM
+      # (no mod access)
+
+      # sending_malicious_links: 1=BAN:PERM
+      # (no mod access)
+
+      # inappropriate_name: 1=KICK, 2=TEMPMUTE, 3=TEMPBAN
+      - "litebansgui.category.inappropriate_name.level.1"
+      - "litebansgui.category.inappropriate_name.level.2"
+      - "litebansgui.category.inappropriate_name.level.3"
+
+      # inappropriate_skin: 1=KICK, 2=TEMPBAN
+      - "litebansgui.category.inappropriate_skin.level.1"
+      - "litebansgui.category.inappropriate_skin.level.2"
+
+      # abusing_support: 1=WARN, 2=TEMPMUTE, 3=TEMPBAN, 4=BAN:PERM
+      - "litebansgui.category.abusing_support.level.1"
+      - "litebansgui.category.abusing_support.level.2"
+      - "litebansgui.category.abusing_support.level.3"
+
+
+      # ╔═══🟩 Uncategorized═══════════════════════════════════╗
+      # encouraging_bad_behavior: 1=WARN, 2=TEMPMUTE, 3=TEMPBAN
+      - "litebansgui.category.encouraging_bad_behavior.level.1"
+      - "litebansgui.category.encouraging_bad_behavior.level.2"
+      - "litebansgui.category.encouraging_bad_behavior.level.3"
+
+      # inappropriate_behavior: 1=WARN, 2=KICK, 3=TEMPMUTE, 4=TEMPBAN
+      - "litebansgui.category.inappropriate_behavior.level.1"
+      - "litebansgui.category.inappropriate_behavior.level.2"
+      - "litebansgui.category.inappropriate_behavior.level.3"
+      - "litebansgui.category.inappropriate_behavior.level.4"
+
+      # death_wishes_self_harm_encouragement: 1=TEMPBAN, 2=BAN:PERM
+      - "litebansgui.category.death_wishes_self_harm_encouragement.level.1"
+
+      # disrespecting_others: 1=WARN, 2=TEMPMUTE, 3=TEMPBAN
+      - "litebansgui.category.disrespecting_others.level.1"
+      - "litebansgui.category.disrespecting_others.level.2"
+      - "litebansgui.category.disrespecting_others.level.3"
+
+      # other: 1=WARN, 2=KICK, 3=TEMPMUTE, 4=TEMPBAN, 5=BAN:PERM
+      - "litebansgui.category.other.level.1"
+      - "litebansgui.category.other.level.2"
+      - "litebansgui.category.other.level.3"
+      - "litebansgui.category.other.level.4"
+
+  # ----------------------------------------------------------
+  # 🎭 Senior Mod — Permanent Bans
+  # (Adds ONLY the BAN:PERM levels)
+  # ----------------------------------------------------------
+  seniormod:
+    includes: ["mod"]
+    permissions:
+
+      # ╔═══🟥 Most Common══════════════════════════════════════╗
+      - "litebansgui.category.griefing.level.5"
+      - "litebansgui.category.bypassing_chat_filter_intentional.level.5"
+      - "litebansgui.category.discrimination.level.2"
+      - "litebansgui.category.server_advertisement.level.2"
+      - "litebansgui.category.swearing.level.4"
+      - "litebansgui.category.community_disruption.level.5"
+      - "litebansgui.category.hacking.level.2"
+      - "litebansgui.category.harassment.level.5"
+
+      # ╔═══🟧 Uncommon════════════════════════════════════════╗
+      - "litebansgui.category.mute_evasion.level.3"
+      - "litebansgui.category.ban_evasion.level.1"
+      - "litebansgui.category.event_disruption.level.3"
+      - "litebansgui.category.ddos_dox_death_threats.level.1"
+
+      # ╔═══🟨 Rare════════════════════════════════════════════╗
+      - "litebansgui.category.extreme_discrimination.level.2"
+      - "litebansgui.category.chargeback_fraud_charges.level.1"
+      - "litebansgui.category.staff_impersonation.level.2"
+      - "litebansgui.category.predatory_behavior_explicit_content.level.1"
+      - "litebansgui.category.sending_malicious_links.level.1"
+      - "litebansgui.category.abusing_support.level.4"
+
+      # ╔═══🟩 Uncategorized═══════════════════════════════════╗
+      - "litebansgui.category.death_wishes_self_harm_encouragement.level.2"
+      - "litebansgui.category.other.level.5"
+
+  # ----------------------------------------------------------
+  # 🧰 Administrator — Reversal Actions
+  # ----------------------------------------------------------
+  administrator:
+    includes: ["seniormod"]
+    permissions:
+      - "litebansgui.history.pardon"
+      - "litebansgui.history.reinstate"

@@ -8,8 +8,7 @@
  * • Provides a Silent toggle button (layout.yml -> category-menu.buttons.silent-toggle),
  *   enabled by (layout.yml -> menus.category.buttons.silent-toggle).
  * • On select:
- *     - if category has 1 level -> skip severity and go to reason prompt
- *     - else -> open severity menu
+ *     - always opens the severity menu (even if the category has only 1 level)
  *
  * 🔧 Examples
  * • new CategoryMenu(...).open(player, session)
@@ -31,7 +30,6 @@ import com.github.arzormc.config.MessageService;
 import com.github.arzormc.config.PlaceholderUtil;
 import com.github.arzormc.punish.PermissionService;
 import com.github.arzormc.punish.PunishSession;
-import com.github.arzormc.punish.ReasonPromptService;
 import com.github.arzormc.punish.SessionManager;
 
 import org.bukkit.Bukkit;
@@ -60,7 +58,6 @@ public final class CategoryMenu implements Listener {
 
     private static final String TITLE_KEY = "menu.category.title";
     private static final String CATEGORY_LORE_FALLBACK_KEY = "menu.category.lore";
-    private static final String MSG_SESSION_CANCELLED = "session.cancelled";
 
     private static final String HISTORY_NAME_KEY = "menu.history-button.name";
     private static final String HISTORY_LORE_KEY = "menu.history-button.lore";
@@ -78,7 +75,6 @@ public final class CategoryMenu implements Listener {
     private final ItemFactory items;
     private final PermissionService perms;
     private final SessionManager sessions;
-    private final ReasonPromptService reasonPrompts;
     private final GuiManager gui;
 
     private final JavaPlugin plugin;
@@ -93,7 +89,6 @@ public final class CategoryMenu implements Listener {
             ItemFactory items,
             PermissionService perms,
             SessionManager sessions,
-            ReasonPromptService reasonPrompts,
             GuiManager gui
     ) {
         this.config = Objects.requireNonNull(config, "config");
@@ -101,7 +96,6 @@ public final class CategoryMenu implements Listener {
         this.items = Objects.requireNonNull(items, "items");
         this.perms = Objects.requireNonNull(perms, "perms");
         this.sessions = Objects.requireNonNull(sessions, "sessions");
-        this.reasonPrompts = Objects.requireNonNull(reasonPrompts, "reasonPrompts");
         this.gui = Objects.requireNonNull(gui, "gui");
 
         this.plugin = JavaPlugin.getProvidingPlugin(getClass());
@@ -311,12 +305,7 @@ public final class CategoryMenu implements Listener {
 
         session.setCategoryId(categoryId);
 
-        if (cat.hasSingleLevel()) {
-            session.setLevel(cat.levels().getFirst());
-            beginReason(player, session);
-            return;
-        }
-
+        // Always go to SeverityMenu (even if there's only one level)
         session.setLastMenu(GuiManager.MenuType.CATEGORY);
 
         player.closeInventory();
@@ -336,36 +325,5 @@ public final class CategoryMenu implements Listener {
         silentSlotByModerator.remove(uuid);
 
         HandlerList.unregisterAll(this);
-    }
-
-    // ======================
-    // 🧩 Internals
-    // ======================
-
-    private void beginReason(Player moderator, PunishSession session) {
-        UUID uuid = moderator.getUniqueId();
-
-        gui.markPrompting(uuid);
-        moderator.closeInventory();
-
-        reasonPrompts.begin(
-                moderator,
-                session,
-                (p, s) -> {
-                    gui.clearPrompting(uuid);
-
-                    s.setLastMenu(GuiManager.MenuType.CATEGORY);
-
-                    gui.openConfirm(p, s);
-                },
-                (p, s) -> {
-                    gui.clearPrompting(uuid);
-
-                    sessions.cancel(uuid);
-                    if (p != null) {
-                        p.sendMessage(messages.component(MSG_SESSION_CANCELLED));
-                    }
-                }
-        );
     }
 }

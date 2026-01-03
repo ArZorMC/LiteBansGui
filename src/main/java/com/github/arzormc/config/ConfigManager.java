@@ -3,13 +3,14 @@
  *
  * 📋 What it does
  * • Loads config.yml and layout.yml from the plugin data folder.
- * • Exposes typed snapshots (behavior, reason-input, permissions, categories, menu layout).
+ * • Exposes typed snapshots (behavior, reason-input, permissions, categories, loadouts, menu layout).
  * • Normalizes and clamps raw values (rows, timeouts, sound volume/pitch, etc.).
  * • Provides semantic getters used by sessions, UI, and dispatching.
  *
  * 🔧 Examples
  * • config.snapshot().behavior().onInventoryClose()
  * • config.snapshot().categories().get("griefing")
+ * • config.snapshot().loadouts().get("mod")
  * • config.snapshot().layout().categoryMenu().rows()
  *
  * ✨ Feedback (messages.yml keys)
@@ -25,6 +26,7 @@ import com.github.arzormc.config.ConfigModels.DenyClickSound;
 import com.github.arzormc.config.ConfigModels.HistoryFilterDef;
 import com.github.arzormc.config.ConfigModels.HistoryMenuLayout;
 import com.github.arzormc.config.ConfigModels.LayoutIcon;
+import com.github.arzormc.config.ConfigModels.LoadoutDef;
 import com.github.arzormc.config.ConfigModels.MenuDefinition;
 import com.github.arzormc.config.ConfigModels.OnInventoryCloseAction;
 import com.github.arzormc.config.ConfigModels.PermissionUiSettings;
@@ -43,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -137,6 +140,8 @@ public final class ConfigManager {
         private final PermissionUiSettings permissionUi;
 
         private final Map<String, CategoryDef> categories;
+        private final Map<String, LoadoutDef> loadouts;
+
         private final Layout layout;
 
         private Snapshot(
@@ -144,12 +149,14 @@ public final class ConfigManager {
                 ReasonInputSettings reasonInput,
                 PermissionUiSettings permissionUi,
                 Map<String, CategoryDef> categories,
+                Map<String, LoadoutDef> loadouts,
                 Layout layout
         ) {
             this.behavior = Objects.requireNonNull(behavior, "behavior");
             this.reasonInput = Objects.requireNonNull(reasonInput, "reasonInput");
             this.permissionUi = Objects.requireNonNull(permissionUi, "permissionUi");
             this.categories = Collections.unmodifiableMap(new LinkedHashMap<>(categories));
+            this.loadouts = Collections.unmodifiableMap(new LinkedHashMap<>(loadouts));
             this.layout = Objects.requireNonNull(layout, "layout");
         }
 
@@ -160,7 +167,7 @@ public final class ConfigManager {
                     DenyAppearance.LOCKED,
                     new DenyClickSound(true, "BLOCK_NOTE_BLOCK_BASS", 0.8f, 0.8f)
             );
-            return new Snapshot(behavior, reason, perm, Map.of(), Layout.empty());
+            return new Snapshot(behavior, reason, perm, Map.of(), Map.of(), Layout.empty());
         }
 
         public static Snapshot load(FileConfiguration cfg, FileConfiguration layout) {
@@ -172,15 +179,20 @@ public final class ConfigManager {
             PermissionUiSettings permissions = loadPermissions(cfg);
 
             Map<String, CategoryDef> categories = loadCategories(cfg);
+            Map<String, LoadoutDef> loadouts = loadLoadouts(cfg);
+
             Layout layoutSnap = Layout.load(layout);
 
-            return new Snapshot(behavior, reasonInput, permissions, categories, layoutSnap);
+            return new Snapshot(behavior, reasonInput, permissions, categories, loadouts, layoutSnap);
         }
 
         public BehaviorSettings behavior() { return behavior; }
         public ReasonInputSettings reasonInput() { return reasonInput; }
         public PermissionUiSettings permissionUi() { return permissionUi; }
+
         public Map<String, CategoryDef> categories() { return categories; }
+        public Map<String, LoadoutDef> loadouts() { return loadouts; }
+
         public Layout layout() { return layout; }
     }
 
@@ -540,6 +552,28 @@ public final class ConfigManager {
             }
 
             out.put(id, new CategoryDef(id, rarity, levels));
+        }
+
+        return out;
+    }
+
+    private static Map<String, LoadoutDef> loadLoadouts(FileConfiguration cfg) {
+        ConfigurationSection section = cfg.getConfigurationSection("loadouts");
+        if (section == null) return Map.of();
+
+        Map<String, LoadoutDef> out = new LinkedHashMap<>();
+
+        for (String id : section.getKeys(false)) {
+            ConfigurationSection node = section.getConfigurationSection(id);
+            if (node == null) continue;
+
+            String normId = id.trim().toLowerCase(Locale.ROOT);
+            if (normId.isEmpty()) continue;
+
+            List<String> includes = node.getStringList("includes");
+            List<String> permissions = node.getStringList("permissions");
+
+            out.put(normId, new LoadoutDef(includes, permissions));
         }
 
         return out;

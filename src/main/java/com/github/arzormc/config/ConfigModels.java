@@ -162,6 +162,17 @@ public final class ConfigModels {
     }
 
     // ======================
+    // 🧩 Loadouts (config.yml)
+    // ======================
+
+    public record LoadoutDef(List<String> includes, List<String> permissions) {
+        public LoadoutDef {
+            includes = (includes == null) ? List.of() : List.copyOf(includes);
+            permissions = (permissions == null) ? List.of() : List.copyOf(permissions);
+        }
+    }
+
+    // ======================
     // 🧩 Categories (config.yml)
     // ======================
 
@@ -227,10 +238,6 @@ public final class ConfigModels {
 
             List<LevelSpec> safe = (levels == null) ? new ArrayList<>() : new ArrayList<>(levels);
             levels = Collections.unmodifiableList(safe);
-        }
-
-        public boolean hasSingleLevel() {
-            return levels.size() == 1;
         }
     }
 

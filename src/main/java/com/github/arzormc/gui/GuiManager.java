@@ -86,7 +86,7 @@ public final class GuiManager {
 
         openMenus.put(moderator.getUniqueId(), MenuType.CATEGORY);
 
-        new CategoryMenu(config, messages, items, perms, sessions, reasonPrompts, this)
+        new CategoryMenu(config, messages, items, perms, sessions, this)
                 .open(moderator, session);
     }
 
