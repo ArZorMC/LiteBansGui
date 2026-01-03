@@ -525,7 +525,7 @@ public final class PunishmentHistoryMenu implements Listener {
         List<Entry> out = new ArrayList<>();
 
         int fetchLimit = PAGE_SIZE * FETCH_MULTIPLIER;
-        int offset = page * fetchLimit;
+        int offset = page * PAGE_SIZE;
 
         try (PreparedStatement ps = Database.get().prepareStatement(SQL_UNION)) {
             String uuidStr = targetUuid.toString();

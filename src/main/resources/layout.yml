@@ -288,34 +288,34 @@ history-menu:
   # These are the exact 28 positions the GUI will fill per page.
   # Chosen as: rows 2–5, columns 0–6 (keeps right column free for breathing room).
   content-slots:
-    - 9                                    # Entry slot #1
-    - 10                                   # Entry slot #2
-    - 11                                   # Entry slot #3
-    - 12                                   # Entry slot #4
-    - 13                                   # Entry slot #5
-    - 14                                   # Entry slot #6
-    - 15                                   # Entry slot #7
-    - 18                                   # Entry slot #8
-    - 19                                   # Entry slot #9
-    - 20                                   # Entry slot #10
-    - 21                                   # Entry slot #11
-    - 22                                   # Entry slot #12
-    - 23                                   # Entry slot #13
-    - 24                                   # Entry slot #14
-    - 27                                   # Entry slot #15
-    - 28                                   # Entry slot #16
-    - 29                                   # Entry slot #17
-    - 30                                   # Entry slot #18
-    - 31                                   # Entry slot #19
-    - 32                                   # Entry slot #20
-    - 33                                   # Entry slot #21
-    - 36                                   # Entry slot #22
-    - 37                                   # Entry slot #23
-    - 38                                   # Entry slot #24
-    - 39                                   # Entry slot #25
-    - 40                                   # Entry slot #26
-    - 41                                   # Entry slot #27
-    - 42                                   # Entry slot #28
+    - 10                                   # Entry slot #1
+    - 11                                   # Entry slot #2
+    - 12                                   # Entry slot #3
+    - 13                                   # Entry slot #4
+    - 14                                   # Entry slot #5
+    - 15                                   # Entry slot #6
+    - 16                                   # Entry slot #7
+    - 19                                   # Entry slot #8
+    - 20                                   # Entry slot #9
+    - 21                                   # Entry slot #10
+    - 22                                   # Entry slot #11
+    - 23                                   # Entry slot #12
+    - 24                                   # Entry slot #13
+    - 25                                   # Entry slot #14
+    - 28                                   # Entry slot #15
+    - 29                                   # Entry slot #16
+    - 30                                   # Entry slot #17
+    - 31                                   # Entry slot #18
+    - 32                                   # Entry slot #19
+    - 33                                   # Entry slot #20
+    - 34                                   # Entry slot #21
+    - 37                                   # Entry slot #22
+    - 38                                   # Entry slot #23
+    - 39                                   # Entry slot #24
+    - 40                                   # Entry slot #25
+    - 41                                   # Entry slot #26
+    - 42                                   # Entry slot #27
+    - 43                                   # Entry slot #28
 
   # Empty-state item material (shown when no history exists)
   empty:

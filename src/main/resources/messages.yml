@@ -90,8 +90,8 @@ session:
   cancelled-on-close: " "
 
   target:
-    locked: "<#FBBF24><owner></#FBBF24> <#94A3B8>is already punishing</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
-    cancelled-by-owner: "<#94A3B8><owner> cancelled punishing</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
+    locked: "<#94A3B8><bold>Target locked.</bold></#94A3B8> <#94A3B8><owner> is already handling</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
+    cancelled-by-owner: "<#94A3B8><bold>Session cancelled.</bold></#94A3B8> <#94A3B8><owner> stopped punishing</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
 
 # === ⌨️ Commands ===
 command:
@@ -141,7 +141,7 @@ reason:
 
 # === ⚙️ Dispatch ===
 punish:
-  success: "<#34D399>Punishment <history_result> for</#34D399> <#7DD3FC><target></#7DD3FC><#34D399>.</#34D399>"
+  success: "<#34D399><bold>Success.</bold></#34D399> <#94A3B8>Punishment <history_result> for</#94A3B8> <#7DD3FC><target></#7DD3FC><#94A3B8>.</#94A3B8>"
 
   dispatch:
     missing-plugin: "<#FB7185>LiteBans is not installed or not enabled.</#FB7185>"

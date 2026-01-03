@@ -256,7 +256,42 @@ loadouts:
       - "litebansgui.use"
       - "litebansgui.history"
       - "litebansgui.history.filter.*"
-      - "litebansgui.category.*"
+
+      # ✅ Category browsing only (NO level permissions)
+      - "litebansgui.category.griefing"
+      - "litebansgui.category.bypassing_chat_filter_intentional"
+      - "litebansgui.category.discrimination"
+      - "litebansgui.category.spamming"
+      - "litebansgui.category.releasing_personal_info_self"
+      - "litebansgui.category.instigating_drama"
+      - "litebansgui.category.server_advertisement"
+      - "litebansgui.category.swearing"
+      - "litebansgui.category.community_disruption"
+      - "litebansgui.category.hacking"
+      - "litebansgui.category.harassment"
+
+      - "litebansgui.category.mute_evasion"
+      - "litebansgui.category.ban_evasion"
+      - "litebansgui.category.event_disruption"
+      - "litebansgui.category.ddos_dox_death_threats"
+      - "litebansgui.category.false_information"
+      - "litebansgui.category.trolling"
+
+      - "litebansgui.category.extreme_discrimination"
+      - "litebansgui.category.chargeback_fraud_charges"
+      - "litebansgui.category.staff_impersonation"
+      - "litebansgui.category.predatory_behavior_explicit_content"
+      - "litebansgui.category.sending_malicious_links"
+      - "litebansgui.category.inappropriate_name"
+      - "litebansgui.category.inappropriate_skin"
+      - "litebansgui.category.abusing_support"
+
+      - "litebansgui.category.encouraging_bad_behavior"
+      - "litebansgui.category.inappropriate_behavior"
+      - "litebansgui.category.death_wishes_self_harm_encouragement"
+      - "litebansgui.category.disrespecting_others"
+      - "litebansgui.category.other"
+
       # 🚫 No litebansgui.category.<id>.level.<n> nodes on purpose.
 
   # ----------------------------------------------------------
